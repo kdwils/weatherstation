@@ -17,9 +17,9 @@ type Tempest struct {
 }
 
 const (
-	ws    = "ws"
 	wss   = "wss"
 	token = "token"
+	udp   = "udp"
 )
 
 // New creates a new tempest weatherstation configuration
@@ -33,7 +33,7 @@ func New(scheme, host, path, token string) *Tempest {
 	}
 }
 
-// NewConnection determines the connection type via the passed tempest scheme. Supports websockets or TODO: UDP connections.
+// NewConnection determines the connection type via the passed tempest scheme. Supports websockets or UDP connections.
 func (t *Tempest) NewConnection(ctx context.Context) (Connection, error) {
 	if t.eventChan == nil {
 		t.eventChan = make(chan Event)
@@ -44,15 +44,16 @@ func (t *Tempest) NewConnection(ctx context.Context) (Connection, error) {
 		Scheme: t.Scheme,
 	}
 
-	// TODO: support udp for local network data aggregation
 	switch strings.ToLower(t.Scheme) {
-	case ws, wss:
+	case wss:
 		qps := make(url.Values)
 		qps.Set(token, t.Token)
 		u.RawQuery = qps.Encode()
 		u.Scheme = t.Scheme
 		u.Path = t.Path
 		return NewWebsocketConnection(ctx, u.String(), t.eventChan, nil)
+	case udp:
+		return NewUDPConnection(ctx, t.Scheme, u.String(), t.eventChan)
 	}
 
 	return nil, fmt.Errorf("unsupported connection protocol: %s", t.Scheme)
