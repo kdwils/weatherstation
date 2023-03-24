@@ -1,0 +1,5 @@
+TEMPEST_HOST: ws.weatherflow.com
+TEMPEST_SCHEME: wss
+TEMPEST_URI_PATH: /swd/data
+TEMPEST_TOKEN: # read from environment variable
+TEMPEST_DEVICE_ID: # read from environment variable
