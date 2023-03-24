@@ -5,22 +5,10 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/kdwils/weatherstation/pkg/connection"
 )
 
-type Handler func(ctx context.Context, e Event)
-
-// Event describes an event read from the connection
-type Event struct {
-	Bytes []byte
-	Err   error
-}
-
-func NewEvent(b []byte, err error) Event {
-	return Event{
-		Bytes: b,
-		Err:   err,
-	}
-}
+type Handler func(ctx context.Context, e connection.Event)
 
 // Listener describes how to listen to weather station device events
 type Listener interface {
@@ -31,14 +19,14 @@ type Listener interface {
 
 // EventListener implements the listener
 type EventListener struct {
-	c         Connection
+	c         connection.Connection
 	Handlers  map[string][]Handler
-	EventChan chan Event
+	EventChan chan connection.Event
 	stopChan  chan bool
 }
 
 // NewEventListener creates a new listener from a connection
-func NewEventListener(c Connection, eventChan chan Event) *EventListener {
+func NewEventListener(c connection.Connection, eventChan chan connection.Event) *EventListener {
 	return &EventListener{
 		c:         c,
 		Handlers:  make(map[string][]Handler),

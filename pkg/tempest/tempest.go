@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/kdwils/weatherstation/pkg/connection"
 )
 
 // Tempest describes the configuration to connect to a tempest device
@@ -13,7 +15,7 @@ type Tempest struct {
 	Host      string
 	Path      string
 	Token     string
-	eventChan chan Event
+	eventChan chan connection.Event
 }
 
 const (
@@ -29,14 +31,14 @@ func New(scheme, host, path, token string) *Tempest {
 		Host:      host,
 		Path:      path,
 		Token:     token,
-		eventChan: make(chan Event),
+		eventChan: make(chan connection.Event),
 	}
 }
 
-// NewConnection determines the connection type via the passed tempest scheme. Supports websockets or UDP connections.
-func (t *Tempest) NewConnection(ctx context.Context) (Connection, error) {
+// NewConnection determines the connection type via the passed tempest scheme. Supports websockets or UDP client connections.
+func (t *Tempest) NewConnection(ctx context.Context) (connection.Connection, error) {
 	if t.eventChan == nil {
-		t.eventChan = make(chan Event)
+		t.eventChan = make(chan connection.Event)
 	}
 
 	u := &url.URL{
@@ -51,9 +53,9 @@ func (t *Tempest) NewConnection(ctx context.Context) (Connection, error) {
 		u.RawQuery = qps.Encode()
 		u.Scheme = t.Scheme
 		u.Path = t.Path
-		return NewWebsocketConnection(ctx, u.String(), t.eventChan, nil)
+		return connection.NewWebsocketClient(ctx, u.String(), t.eventChan, nil)
 	case udp:
-		return NewUDPConnection(ctx, t.Scheme, u.String(), t.eventChan)
+		return connection.NewUDPClient(ctx, t.Scheme, u.String(), t.eventChan)
 	}
 
 	return nil, fmt.Errorf("unsupported connection protocol: %s", t.Scheme)
