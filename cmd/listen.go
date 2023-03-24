@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
 
+	"github.com/kdwils/weatherstation/pkg/connection"
 	"github.com/kdwils/weatherstation/pkg/logr"
 	"github.com/kdwils/weatherstation/pkg/tempest"
 	"github.com/spf13/cobra"
@@ -41,7 +41,7 @@ var listenCmd = &cobra.Command{
 			return
 		}
 
-		listener.RegisterHandler(tempest.EventConnectionOpened, func(ctx context.Context, e tempest.Event) {
+		listener.RegisterHandler(tempest.EventConnectionOpened, func(ctx context.Context, e connection.Event) {
 			l, err := logr.FromContext(ctx)
 			if err != nil {
 				log.Println(err)
@@ -53,10 +53,10 @@ var listenCmd = &cobra.Command{
 				return
 			}
 
-			l.Info("connection successfully opened")
+			l.Info("connection opened", zap.ByteString("event", e.Bytes))
 		})
 
-		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, e tempest.Event) {
+		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, e connection.Event) {
 			l, err := logr.FromContext(ctx)
 			if err != nil {
 				log.Println(err)
@@ -86,10 +86,9 @@ var listenCmd = &cobra.Command{
 		}(ctx, device)
 
 		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt)
-		<-c
+		signal.Notify(c, os.Interrupt)
 
-		listener.Stop()
+		<-c
 		logger.Info("received signal to terminate")
 
 	},
