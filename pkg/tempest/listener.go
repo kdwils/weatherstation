@@ -8,29 +8,25 @@ import (
 	"github.com/kdwils/weatherstation/pkg/connection"
 )
 
-type Handler func(ctx context.Context, e connection.Event)
+type Handler func(ctx context.Context, b []byte)
 
 // Listener describes how to listen to weather station device events
 type Listener interface {
 	Listen(ctx context.Context, eventType ListenEventType, device int) error
 	RegisterHandler(e EventType, hs ...Handler) error
-	Stop()
 }
 
 // EventListener implements the listener
 type EventListener struct {
-	c         connection.Connection
-	Handlers  map[string][]Handler
-	EventChan chan connection.Event
-	stopChan  chan bool
+	c        connection.Connection
+	Handlers map[string][]Handler
 }
 
 // NewEventListener creates a new listener from a connection
-func NewEventListener(c connection.Connection, eventChan chan connection.Event) *EventListener {
+func NewEventListener(c connection.Connection) *EventListener {
 	return &EventListener{
-		c:         c,
-		Handlers:  make(map[string][]Handler),
-		EventChan: eventChan,
+		c:        c,
+		Handlers: make(map[string][]Handler),
 	}
 }
 
@@ -56,27 +52,25 @@ func (l EventListener) Listen(ctx context.Context, eventType ListenEventType, de
 		return err
 	}
 
-	go l.c.Read(ctx)
-
 	for {
-		select {
-		case <-l.stopChan:
-			return nil
-		case e := <-l.EventChan:
-			var o Observation
-			err := json.Unmarshal(e.Bytes, &o)
-			if err != nil {
-				continue
-			}
+		b, err := l.c.Read(ctx)
+		if err != nil {
+			return err
+		}
 
-			hs, ok := l.Handlers[o.Type]
-			if !ok {
-				continue
-			}
+		var o Observation
+		err = json.Unmarshal(b, &o)
+		if err != nil {
+			return err
+		}
 
-			for _, h := range hs {
-				go h(ctx, e)
-			}
+		hs, ok := l.Handlers[o.Type]
+		if !ok {
+			continue
+		}
+
+		for _, h := range hs {
+			go h(ctx, b)
 		}
 	}
 }
@@ -88,8 +82,4 @@ func (l EventListener) RegisterHandler(eventType EventType, hs ...Handler) error
 
 	l.Handlers[string(eventType)] = append(l.Handlers[string(eventType)], hs...)
 	return nil
-}
-
-func (l EventListener) Stop() {
-	l.stopChan <- true
 }

@@ -11,11 +11,9 @@ type Status struct {
 }
 
 type Observation struct {
-	Type    string          `json:"type"`
-	Device  int             `json:"device_id,omitempty"`
-	Station int             `json:"station_id,omitempty"`
-	Obs     [][]interface{} `json:"obs,omitempty"`
-	Evt     []interface{}   `json:"evt,omitempty"`
+	Type    string `json:"type"`
+	Device  int    `json:"device_id,omitempty"`
+	Station int    `json:"station_id,omitempty"`
 }
 
 // ObservationTempest describes the event payload for a 'obs_st' event

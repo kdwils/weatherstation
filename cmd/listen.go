@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/kdwils/weatherstation/pkg/connection"
 	"github.com/kdwils/weatherstation/pkg/logr"
 	"github.com/kdwils/weatherstation/pkg/tempest"
 	"github.com/spf13/cobra"
@@ -41,35 +40,25 @@ var listenCmd = &cobra.Command{
 			return
 		}
 
-		listener.RegisterHandler(tempest.EventConnectionOpened, func(ctx context.Context, e connection.Event) {
+		listener.RegisterHandler(tempest.EventConnectionOpened, func(ctx context.Context, b []byte) {
 			l, err := logr.FromContext(ctx)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
-			if e.Err != nil {
-				l.Error("error receiving tempest conection event", zap.Error(err))
-				return
-			}
-
-			l.Info("connection opened", zap.ByteString("event", e.Bytes))
+			l.Info("connection opened", zap.ByteString("event", b))
 		})
 
-		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, e connection.Event) {
+		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, b []byte) {
 			l, err := logr.FromContext(ctx)
 			if err != nil {
 				log.Println(err)
-				return
-			}
-
-			if e.Err != nil {
-				l.Error("error receiving tempest observation event", zap.Error(err))
 				return
 			}
 
 			var obs tempest.ObservationTempest
-			err = json.Unmarshal(e.Bytes, &obs)
+			err = json.Unmarshal(b, &obs)
 			if err != nil {
 				l.Error("could not parse event", zap.Error(err))
 				return

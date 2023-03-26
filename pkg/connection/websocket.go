@@ -10,19 +10,17 @@ import (
 // Websocket implements the connection interface for a websocket connection
 type WebsocketProtocol struct {
 	conn *websocket.Conn
-	ec   chan Event
 }
 
 // NewWebsocketClient creates a new websocket client. Opts can be nil.
-func NewWebsocketClient(ctx context.Context, addr string, eventChan chan Event, opts *websocket.DialOptions) (Connection, error) {
+func NewWebsocketClient(ctx context.Context, addr string, opts *websocket.DialOptions) (*WebsocketProtocol, error) {
 	c, _, err := websocket.Dial(ctx, addr, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	return WebsocketProtocol{
+	return &WebsocketProtocol{
 		conn: c,
-		ec:   eventChan,
 	}, nil
 }
 
@@ -32,12 +30,9 @@ func (w WebsocketProtocol) Write(ctx context.Context, message interface{}) error
 }
 
 // Read reads indefinitely from the websocket connection
-func (w WebsocketProtocol) Read(ctx context.Context) {
-	defer w.Close(ctx)
-	for {
-		_, b, err := w.conn.Read(ctx)
-		w.ec <- NewEvent(b, err)
-	}
+func (w WebsocketProtocol) Read(ctx context.Context) ([]byte, error) {
+	_, b, err := w.conn.Read(ctx)
+	return b, err
 }
 
 // Close closes the websocket connection with status normal closure
