@@ -45,11 +45,10 @@ func (t *Tempest) NewConnection(ctx context.Context) (connection.Connection, err
 		qps := make(url.Values)
 		qps.Set(token, t.Token)
 		u.RawQuery = qps.Encode()
-		u.Scheme = t.Scheme
 		u.Path = t.Path
-		return connection.NewWebsocketClient(ctx, u.String(), nil)
+		return connection.NewWebsocket(ctx, u.String(), nil)
 	case udp:
-		return connection.NewUDPClient(ctx, t.Scheme, u.String())
+		return connection.NewUDP(ctx, u.String())
 	}
 
 	return nil, fmt.Errorf("unsupported connection protocol: %s", t.Scheme)

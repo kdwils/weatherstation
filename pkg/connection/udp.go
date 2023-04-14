@@ -11,13 +11,14 @@ type UserDatagramProtocol struct {
 	addr *net.UDPAddr
 }
 
-func NewUDPClient(ctx context.Context, scheme, uri string) (*UserDatagramProtocol, error) {
-	addr, err := net.ResolveUDPAddr(scheme, uri)
+// NewUDP dials a new udp connection
+func NewUDP(ctx context.Context, uri string) (*UserDatagramProtocol, error) {
+	addr, err := net.ResolveUDPAddr("udp", uri)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := net.DialUDP(scheme, nil, addr)
+	c, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
 		return nil, err
 	}

@@ -12,8 +12,8 @@ type WebsocketProtocol struct {
 	conn *websocket.Conn
 }
 
-// NewWebsocketClient creates a new websocket client. Opts can be nil.
-func NewWebsocketClient(ctx context.Context, addr string, opts *websocket.DialOptions) (*WebsocketProtocol, error) {
+// NewWebsocket dials a new websocket connection. Opts can be nil.
+func NewWebsocket(ctx context.Context, addr string, opts *websocket.DialOptions) (*WebsocketProtocol, error) {
 	c, _, err := websocket.Dial(ctx, addr, opts)
 	if err != nil {
 		return nil, err

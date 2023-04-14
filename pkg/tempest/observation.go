@@ -50,6 +50,7 @@ type ObservationTempestData struct {
 	PrecipitationAnalysisType       int     `json:"precipitation_analysis_type"`
 }
 
+// UnmarshalJSON its ugly
 func (o *ObservationTempestData) UnmarshalJSON(b []byte) error {
 	data := make([][]interface{}, 0)
 	err := json.Unmarshal(b, &data)
@@ -58,12 +59,16 @@ func (o *ObservationTempestData) UnmarshalJSON(b []byte) error {
 	}
 
 	if len(data) < 1 {
-		return nil
+		return fmt.Errorf("no observation data in payload")
 	}
 
+	const (
+		totalObservationFields = 22
+	)
+
 	obs := data[0]
-	if len(obs) != 22 {
-		return fmt.Errorf("observation data is missing: %d total, expected %d", len(obs), 22)
+	if len(obs) != totalObservationFields {
+		return fmt.Errorf("observation data is missing: %d total, expected %d", len(obs), totalObservationFields)
 	}
 
 	o.TimeEpoch = int(obs[0].(float64))

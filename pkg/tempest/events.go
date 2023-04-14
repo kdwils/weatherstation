@@ -1,7 +1,7 @@
 package tempest
 
 type (
-	// ListenEventType describe an event type to listen on
+	// ListenEventType describe the event type group to listen on
 	ListenEventType string
 
 	// EventType describes the type of event that has occurred
