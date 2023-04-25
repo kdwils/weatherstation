@@ -1,31 +1,31 @@
 package tempest
 
 type (
-	// ListenEventType describe the event type group to listen on
-	ListenEventType string
+	// ListenGroup describe the event type group to listen on
+	ListenGroup string
 
-	// EventType describes the type of event that has occurred
-	EventType string
+	// Event describes the type of event that has occurred
+	Event string
 )
 
 const (
-	ListenStart       ListenEventType = "listen_start"
-	ListenStop        ListenEventType = "listen_stop"
-	ListenStartEvents ListenEventType = "listen_start_events"
-	ListenStopEvents  ListenEventType = "listen_stop_events"
-	ListenRapidStart  ListenEventType = "listen_rapid_start"
-	ListenRapidStop   ListenEventType = "listen_rapid_stop"
+	ListenGroupStart       ListenGroup = "listen_start"
+	ListenGroupStop        ListenGroup = "listen_stop"
+	ListenGroupStartEvents ListenGroup = "listen_start_events"
+	ListenGroupStopEvents  ListenGroup = "listen_stop_events"
+	ListenGroupRapidStart  ListenGroup = "listen_rapid_start"
+	ListenGroupRapidStop   ListenGroup = "listen_rapid_stop"
 
-	EventAck                EventType = "ack"
-	EventConnectionOpened   EventType = "connection_opened"
-	EventPrecipitation      EventType = "evt_precip"
-	EventLightingStrike     EventType = "evt_strike"
-	EventDeviceOnline       EventType = "evt_device_online"
-	EventDeviceOffline      EventType = "evt_device_offline"
-	EventStationOnline      EventType = "evt_station_online"
-	EventStationOffline     EventType = "evt_station_offline"
-	EventRapidWind          EventType = "rapid_wind"
-	EventObservationAir     EventType = "obs_air"
-	EventObservationSky     EventType = "obs_sky"
-	EventObservationTempest EventType = "obs_st"
+	EventAck                Event = "ack"
+	EventConnectionOpened   Event = "connection_opened"
+	EventPrecipitation      Event = "evt_precip"
+	EventLightingStrike     Event = "evt_strike"
+	EventDeviceOnline       Event = "evt_device_online"
+	EventDeviceOffline      Event = "evt_device_offline"
+	EventStationOnline      Event = "evt_station_online"
+	EventStationOffline     Event = "evt_station_offline"
+	EventRapidWind          Event = "rapid_wind"
+	EventObservationAir     Event = "obs_air"
+	EventObservationSky     Event = "obs_sky"
+	EventObservationTempest Event = "obs_st"
 )

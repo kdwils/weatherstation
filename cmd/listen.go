@@ -34,7 +34,7 @@ var listenCmd = &cobra.Command{
 
 		ctx := logr.WithContext(context.Background(), logger)
 
-		listener, err := t.NewListener(ctx)
+		listener, err := t.NewListener(ctx, tempest.ListenGroupStart, device)
 		if err != nil {
 			logger.Error("could not create listener", zap.Error(err))
 			return
@@ -68,7 +68,7 @@ var listenCmd = &cobra.Command{
 		})
 
 		go func(ctx context.Context, device int) {
-			err := listener.Listen(ctx, tempest.ListenStart, device)
+			err := listener.Listen(ctx)
 			if err != nil {
 				log.Fatal(err)
 			}

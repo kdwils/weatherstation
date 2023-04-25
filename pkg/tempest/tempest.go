@@ -55,11 +55,11 @@ func (t *Tempest) NewConnection(ctx context.Context) (connection.Connection, err
 }
 
 // NewListener creates a new connection and listener to listen to events on
-func (t *Tempest) NewListener(ctx context.Context) (Listener, error) {
+func (t *Tempest) NewListener(ctx context.Context, ListenGroup ListenGroup, device int) (Listener, error) {
 	c, err := t.NewConnection(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewEventListener(c), nil
+	return NewEventListener(c, ListenGroup, device), nil
 }
