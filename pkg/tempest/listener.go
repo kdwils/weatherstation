@@ -48,7 +48,7 @@ func newRequestMessage(Event ListenGroup, device int) requestMessage {
 	}
 }
 
-// Listen listens for new events and passes them each handler of that event type. Fails silently if the event cannot be unmarshaled.
+// Listen listens for new events and passes them each handler of that event type
 func (l EventListener) Listen(ctx context.Context) error {
 	defer l.c.Close(ctx)
 
@@ -79,6 +79,7 @@ func (l EventListener) Listen(ctx context.Context) error {
 	}
 }
 
+// RegisterHandler registers new handlers for a given event type
 func (l EventListener) RegisterHandler(Event Event, hs ...Handler) error {
 	if l.Handlers == nil {
 		l.Handlers = make(map[string][]Handler)

@@ -26,12 +26,12 @@ var listenCmd = &cobra.Command{
 		token := viper.GetString("TEMPEST_TOKEN")
 		device := viper.GetInt("TEMPEST_DEVICE_ID")
 
-		t := tempest.New(scheme, host, path, token)
 		logger, err := zap.NewProduction()
 		if err != nil {
 			log.Fatal(err)
 		}
 
+		t := tempest.New(scheme, host, path, token)
 		ctx := logr.WithContext(context.Background(), logger)
 
 		listener, err := t.NewListener(ctx, tempest.ListenGroupStart, device)

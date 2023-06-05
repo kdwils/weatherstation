@@ -30,7 +30,7 @@ func NewUDP(ctx context.Context, uri string) (*UserDatagramProtocol, error) {
 }
 
 // Write writes a new message to the websocket connection
-func (u *UserDatagramProtocol) Write(ctx context.Context, message interface{}) error {
+func (u *UserDatagramProtocol) Write(_ context.Context, message interface{}) error {
 	b, err := json.Marshal(message)
 	if err != nil {
 		return err
