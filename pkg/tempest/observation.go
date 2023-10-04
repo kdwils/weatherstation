@@ -25,6 +25,7 @@ type ObservationTempest struct {
 	Summary ObservationTempestSummary `json:"summary"`
 	Data    ObservationTempestData    `json:"obs"`
 }
+
 type ObservationTempestData struct {
 	TimeEpoch                       int     `json:"time_epoch"`
 	WindLull                        float64 `json:"wind_lull"`
@@ -50,9 +51,8 @@ type ObservationTempestData struct {
 	PrecipitationAnalysisType       int     `json:"precipitation_analysis_type"`
 }
 
-// UnmarshalJSON its ugly
 func (o *ObservationTempestData) UnmarshalJSON(b []byte) error {
-	data := make([][]interface{}, 0)
+	data := make([][]any, 0)
 	err := json.Unmarshal(b, &data)
 	if err != nil {
 		return fmt.Errorf("invalid observation event: %v", err)
@@ -93,7 +93,6 @@ func (o *ObservationTempestData) UnmarshalJSON(b []byte) error {
 	o.RainAccumulationFinalCheck = obs[19].(float64)
 	o.LocalRainAccumulationFinalCheck = obs[20].(float64)
 	o.PrecipitationAnalysisType = int(obs[21].(float64))
-
 	return nil
 }
 

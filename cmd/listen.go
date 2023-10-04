@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/kdwils/weatherstation/pkg/logr"
+	"github.com/kdwils/weatherstation/logging"
 	"github.com/kdwils/weatherstation/pkg/tempest"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,17 +31,17 @@ var listenCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		t := tempest.New(scheme, host, path, token)
-		ctx := logr.WithContext(context.Background(), logger)
+		tempestConfig := tempest.NewConfig(scheme, host, path, token)
+		ctx := logging.WithContext(context.Background(), logger)
 
-		listener, err := t.NewListener(ctx, tempest.ListenGroupStart, device)
+		listener, err := tempestConfig.NewEventListener(ctx, tempest.ListenGroupStart, device)
 		if err != nil {
 			logger.Error("could not create listener", zap.Error(err))
 			return
 		}
 
 		listener.RegisterHandler(tempest.EventConnectionOpened, func(ctx context.Context, b []byte) {
-			l, err := logr.FromContext(ctx)
+			l, err := logging.FromContext(ctx)
 			if err != nil {
 				log.Println(err)
 				return
@@ -51,7 +51,7 @@ var listenCmd = &cobra.Command{
 		})
 
 		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, b []byte) {
-			l, err := logr.FromContext(ctx)
+			l, err := logging.FromContext(ctx)
 			if err != nil {
 				log.Println(err)
 				return

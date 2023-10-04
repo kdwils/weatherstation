@@ -11,6 +11,8 @@ import (
 type Handler func(ctx context.Context, b []byte)
 
 // Listener describes how to listen to weather station device events
+//
+//go:generate mockgen -package mocks -destination mocks/mock_listeniner.go github.com/kdwils/weatherstation/pkg/connection Connection
 type Listener interface {
 	Listen(ctx context.Context) error
 	RegisterHandler(e Event, hs ...Handler) error
@@ -25,7 +27,7 @@ type EventListener struct {
 }
 
 // NewEventListener creates a new listener from a connection
-func NewEventListener(c connection.Connection, ListenGroup ListenGroup, device int) *EventListener {
+func NewEventListener(c connection.Connection, ListenGroup ListenGroup, device int) Listener {
 	return &EventListener{
 		c:           c,
 		Handlers:    make(map[string][]Handler),
@@ -34,14 +36,14 @@ func NewEventListener(c connection.Connection, ListenGroup ListenGroup, device i
 	}
 }
 
-type requestMessage struct {
+type RequestMessage struct {
 	Type   string `json:"type"`
 	Device int    `json:"device_id"`
 	ID     string `json:"id"`
 }
 
-func newRequestMessage(Event ListenGroup, device int) requestMessage {
-	return requestMessage{
+func NewRequestMessage(Event ListenGroup, device int) RequestMessage {
+	return RequestMessage{
 		Type:   string(Event),
 		Device: device,
 		ID:     uuid.New().String(),
@@ -49,10 +51,10 @@ func newRequestMessage(Event ListenGroup, device int) requestMessage {
 }
 
 // Listen listens for new events and passes them each handler of that event type
-func (l EventListener) Listen(ctx context.Context) error {
+func (l *EventListener) Listen(ctx context.Context) error {
 	defer l.c.Close(ctx)
 
-	if err := l.c.Write(ctx, newRequestMessage(l.ListenGroup, l.Device)); err != nil {
+	if err := l.c.Write(ctx, NewRequestMessage(l.ListenGroup, l.Device)); err != nil {
 		return err
 	}
 
@@ -80,7 +82,7 @@ func (l EventListener) Listen(ctx context.Context) error {
 }
 
 // RegisterHandler registers new handlers for a given event type
-func (l EventListener) RegisterHandler(Event Event, hs ...Handler) error {
+func (l *EventListener) RegisterHandler(Event Event, hs ...Handler) error {
 	if l.Handlers == nil {
 		l.Handlers = make(map[string][]Handler)
 	}
