@@ -25,11 +25,11 @@ func NewConfig(scheme, host, path, token string) Config {
 }
 
 // NewListener creates a new connection and listener to listen to events on
-func (c Config) NewEventListener(ctx context.Context, ListenGroup ListenGroup, device int) (Listener, error) {
+func (c Config) NewEventListener(ctx context.Context, listenGroup ListenGroup, device int) (Listener, error) {
 	conn, err := connection.NewConnection(ctx, c.Scheme, c.Host, c.Path, c.Token)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewEventListener(conn, ListenGroup, device), nil
+	return NewEventListener(conn, listenGroup, device), nil
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/kdwils/weatherstation/pkg/api"
 	"github.com/kdwils/weatherstation/pkg/connection"
 )
 
@@ -38,8 +39,8 @@ func NewEventListener(c connection.Connection, ListenGroup ListenGroup, device i
 
 type RequestMessage struct {
 	Type   string `json:"type"`
-	Device int    `json:"device_id"`
 	ID     string `json:"id"`
+	Device int    `json:"device_id"`
 }
 
 func NewRequestMessage(Event ListenGroup, device int) RequestMessage {
@@ -64,7 +65,7 @@ func (l *EventListener) Listen(ctx context.Context) error {
 			return err
 		}
 
-		var o Observation
+		var o api.Observation
 		err = json.Unmarshal(b, &o)
 		if err != nil {
 			return err
