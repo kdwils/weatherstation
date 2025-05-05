@@ -17,9 +17,6 @@ COPY --from=builder /app/weatherstation /app/
 COPY --from=builder /app/static /app/static
 COPY --from=builder /app/templates /app/templates
 
-RUN adduser -D weatherstation
-USER weatherstation
-
 EXPOSE 8080
 
 ENTRYPOINT ["/app/weatherstation"]
