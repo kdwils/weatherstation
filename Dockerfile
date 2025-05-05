@@ -15,7 +15,6 @@ WORKDIR /app
 
 COPY --from=builder /app/weatherstation /app/
 COPY --from=builder /app/static /app/static
-COPY --from=builder /app/templates /app/templates
 
 EXPOSE 8080
 
