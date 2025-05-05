@@ -35,23 +35,18 @@ import (
     "os"
     "os/signal"
 
-    "github.com/kdwils/weatherstation/logging"
     "github.com/kdwils/weatherstation/pkg/api"
     "github.com/kdwils/weatherstation/pkg/connection"
     "github.com/kdwils/weatherstation/pkg/tempest"
 )
 
 func main() {
-    logger, _ := zap.NewProduction()
-    ctx := logging.WithContext(context.Background(), logger)
-
-    // Create a new connection
     conn, err := connection.NewConnection(ctx, "wss", "ws.weatherflow.com", "/swd/data", "your-token")
     if err != nil {
         log.Fatal(err)
     }
 
-    // Create a new event listener
+    ctx := context.Background()
     listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, deviceID)
 
     // Register handlers for different events
@@ -62,7 +57,7 @@ func main() {
     listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, b []byte) {
         var obs api.ObservationTempest
         if err := json.Unmarshal(b, &obs); err != nil {
-            logger.Error("could not parse event", zap.Error(err))
+            log.Fatal(err)
             return
         }
         log.Printf("received observation: %+v", obs)
