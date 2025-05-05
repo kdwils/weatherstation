@@ -3,6 +3,7 @@ module github.com/kdwils/weatherstation
 go 1.24
 
 require (
+	github.com/a-h/templ v0.3.865
 	github.com/coder/websocket v1.8.13
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
