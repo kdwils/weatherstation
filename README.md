@@ -2,6 +2,39 @@
 
 A Go package for listening to [Tempest weather station](https://shop.tempest.earth/products/tempest) events. This package provides a simple interface for consuming real-time weather data from your station at home.
 
+It also ships with a simple web dashboard that can be used to view the current weather data.
+
+## Installation
+
+To install the package, run the following command:
+
+From Go
+```bash
+go install github.com/kdwils/weatherstation@latest
+```
+
+This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
+
+## The Dashboard
+
+The dashboard is a simple web application that uses the Go template engine to render the current weather data.
+
+The dashboard is served on port 8080 by default, but can be configured using the `WEATHERSTATION_SERVER_PORT` environment variable.
+
+To serve the dashboard, run the following command:
+
+From the local directory:
+```bash
+go run main.go serve
+```
+
+From the binary:
+```bash
+weatherstation serve 
+```
+
+Then open http://localhost:8080 (or wherever its hosted) in your browser to view the dashboard.
+
 ## Package Structure
 
 The package is organized into several modules under the `pkg` directory:
