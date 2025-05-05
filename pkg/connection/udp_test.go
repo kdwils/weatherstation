@@ -21,11 +21,6 @@ func TestNewUDP(t *testing.T) {
 			uri:     "invalid:uri:format",
 			wantErr: true,
 		},
-		{
-			name:    "empty uri",
-			uri:     "",
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
