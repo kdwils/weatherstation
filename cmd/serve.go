@@ -41,7 +41,7 @@ var serveCmd = &cobra.Command{
 
 		listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, device)
 
-		srv := server.New(listener)
+		srv := server.New(listener, serverPort)
 
 		http.HandleFunc("/", server.CORSMiddleware(srv.HandleHome()))
 		http.HandleFunc("/events", server.CORSMiddleware(srv.HandleEvents()))

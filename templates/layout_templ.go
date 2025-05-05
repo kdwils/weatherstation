@@ -8,7 +8,7 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func Layout() templ.Component {
+func Layout(port int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -37,7 +37,7 @@ func Layout() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</main></body><script>\n\t\t\tconst events = new EventSource(\"http://127.0.0.1:8080/events\");\n\t\t\tevents.onmessage = function (event) {\n                try {\n                    const dashboard = document.getElementById('dashboard');\n                    if (dashboard) {\n                        dashboard.innerHTML = event.data;\n                    }\n                } catch (err) {\n                    console.error('Error updating dashboard:', err);\n                }\n\t\t\t};\n\t\t</script></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</main></body><script>\n            const events = new EventSource(`http://127.0.0.1:${port}/events`);\n            events.onmessage = function (event) {\n                try {\n                    const dashboard = document.getElementById('dashboard');\n                    if (dashboard) {\n                        dashboard.innerHTML = event.data;\n                    }\n                } catch (err) {\n                    console.error('Error updating dashboard:', err);\n                }\n            };\n        </script></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

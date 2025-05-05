@@ -1,6 +1,6 @@
 package templates
 
-templ Layout() {
+templ Layout(port int) {
     <!DOCTYPE html>
     <html lang="en">
         <head>
@@ -16,9 +16,9 @@ templ Layout() {
             </main>
         </body>
 
-		<script>
-			const events = new EventSource("http://127.0.0.1:8080/events");
-			events.onmessage = function (event) {
+        <script>
+            const events = new EventSource(`http://127.0.0.1:${port}/events`);
+            events.onmessage = function (event) {
                 try {
                     const dashboard = document.getElementById('dashboard');
                     if (dashboard) {
@@ -27,8 +27,7 @@ templ Layout() {
                 } catch (err) {
                     console.error('Error updating dashboard:', err);
                 }
-			};
-		</script>
-		
+            };
+        </script>
     </html>
 }
