@@ -81,40 +81,6 @@ func main() {
 
 The package uses [Viper](https://github.com/spf13/viper) for configuration management. You can configure the package using environment variables or a configuration file.
 
-### Environment Variables
-
-```bash
-WEATHERSTATION_TEMPEST_HOST=ws.weatherflow.com
-WEATHERSTATION_TEMPEST_SCHEME=wss
-WEATHERSTATION_TEMPEST_PATH=/swd/data
-WEATHERSTATION_TEMPEST_TOKEN=your-token-here
-WEATHERSTATION_TEMPEST_DEVICE_ID=your-device-id
-```
-
-### Configuration File (yaml)
-
-Create a `config.yaml` file:
-
-```yaml
-WEATHERSTATION_TEMPEST_HOST: ws.weatherflow.com
-WEATHERSTATION_TEMPEST_SCHEME: wss
-WEATHERSTATION_TEMPEST_PATH: /swd/data
-WEATHERSTATION_TEMPEST_TOKEN: your-token-here
-WEATHERSTATION_TEMPEST_DEVICE_ID: your-device-id
-```
-
-### Default Configuration Values
-
-The CLI sets these default values if not otherwise specified:
-
-```go
-viper.SetDefault("tempest.host", "")
-viper.SetDefault("tempest.scheme", "")
-viper.SetDefault("tempest.uri_path", "")
-viper.SetDefault("tempest.token", "")
-viper.SetDefault("tempest.deviceID", 0)
-```
-
 ## Supported Events
 
 The package supports various event types defined in `pkg/tempest/events.go`:
