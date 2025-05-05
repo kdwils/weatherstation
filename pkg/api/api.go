@@ -7,7 +7,6 @@ import (
 	"math"
 )
 
-//go:generate mockgen -package mocks -destination mocks/mock_client.go github.com/kdwils/weatherstation/pkg/api Client
 type Client interface {
 	GetStationMetadata(ctx context.Context, token string) (StationMetadata, error)
 	GetLatestStationObservation(ctx context.Context, stationID, token string) (ObservationReport, error)

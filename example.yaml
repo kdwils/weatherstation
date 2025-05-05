@@ -1,0 +1,5 @@
+WEATHERSTATION_TEMPEST_HOST: ws.weatherflow.com
+WEATHERSTATION_TEMPEST_SCHEME: wss
+WEATHERSTATION_TEMPEST_PATH: /swd/data
+WEATHERSTATION_TEMPEST_TOKEN: # read from environment variable
+WEATHERSTATION_TEMPEST_DEVICEID: # read from environment variable

@@ -12,8 +12,6 @@ import (
 type Handler func(ctx context.Context, b []byte)
 
 // Listener describes how to listen to weather station device events
-//
-//go:generate mockgen -package mocks -destination mocks/mock_listeniner.go github.com/kdwils/weatherstation/pkg/connection Connection
 type Listener interface {
 	Listen(ctx context.Context) error
 	RegisterHandler(e Event, hs ...Handler) error
