@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/coder/websocket"
 )
 
-//go:generate mockgen -package mocks -destination mocks/mock_connection.go github.com/kdwils/weatherstation/pkg/connection Connection
+// Connection is a generic interface for a connection to a tempest device
 type Connection interface {
 	Write(context.Context, any) error
 	Read(context.Context) ([]byte, error)
-	Close(context.Context) error
+	Close(context.Context, ...websocket.StatusCode) error
 }
 
 const (

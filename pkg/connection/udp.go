@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+
+	"github.com/coder/websocket"
 )
 
 type UDP struct {
@@ -63,7 +65,7 @@ func (u *UDP) Read(ctx context.Context) ([]byte, error) {
 }
 
 // Close closes the websocket connection with status normal closure
-func (u *UDP) Close(ctx context.Context) error {
+func (u *UDP) Close(ctx context.Context, _ ...websocket.StatusCode) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

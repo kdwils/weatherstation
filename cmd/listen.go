@@ -6,12 +6,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 
-	"github.com/kdwils/weatherstation/logging"
+	"github.com/kdwils/weatherstation/pkg/api"
+	"github.com/kdwils/weatherstation/pkg/connection"
 	"github.com/kdwils/weatherstation/pkg/tempest"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 // listenCmd represents the listen command
@@ -20,51 +20,33 @@ var listenCmd = &cobra.Command{
 	Short: "example: listen on tempest events",
 	Long:  `example: listen on tempest events`,
 	Run: func(cmd *cobra.Command, args []string) {
-		scheme := viper.GetString("TEMPEST_SCHEME")
-		host := viper.GetString("TEMPEST_HOST")
-		path := viper.GetString("TEMPEST_URI_PATH")
-		token := viper.GetString("TEMPEST_TOKEN")
-		device := viper.GetInt("TEMPEST_DEVICE_ID")
+		scheme := getEnvOrDefault("WEATHERSTATION_TEMPEST_SCHEME", "wss")
+		host := getEnvOrDefault("WEATHERSTATION_TEMPEST_HOST", "")
+		path := getEnvOrDefault("WEATHERSTATION_TEMPEST_PATH", "")
+		token := getEnvOrDefault("WEATHERSTATION_TEMPEST_TOKEN", "")
+		device := getEnvIntOrDefault("WEATHERSTATION_TEMPEST_DEVICE_ID", 0)
 
-		logger, err := zap.NewProduction()
+		ctx := context.Background()
+		conn, err := connection.NewConnection(ctx, scheme, host, path, token)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		tempestConfig := tempest.NewConfig(scheme, host, path, token)
-		ctx := logging.WithContext(context.Background(), logger)
-
-		listener, err := tempestConfig.NewEventListener(ctx, tempest.ListenGroupStart, device)
-		if err != nil {
-			logger.Error("could not create listener", zap.Error(err))
-			return
-		}
+		listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, device)
 
 		listener.RegisterHandler(tempest.EventConnectionOpened, func(ctx context.Context, b []byte) {
-			l, err := logging.FromContext(ctx)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			l.Info("connection opened", zap.ByteString("event", b))
+			log.Printf("connection opened: %s", b)
 		})
 
 		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, b []byte) {
-			l, err := logging.FromContext(ctx)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			var obs tempest.ObservationTempest
+			var obs api.ObservationTempest
 			err = json.Unmarshal(b, &obs)
 			if err != nil {
-				l.Error("could not parse event", zap.Error(err))
+				log.Fatal(err)
 				return
 			}
 
-			l.Info("received observation", zap.Any("observation", obs))
+			log.Printf("received observation: %+v", obs)
 		})
 
 		go func(ctx context.Context, device int) {
@@ -78,9 +60,28 @@ var listenCmd = &cobra.Command{
 		signal.Notify(c, os.Interrupt)
 
 		<-c
-		logger.Info("received signal to terminate")
-
+		log.Println("received signal to terminate")
 	},
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func getEnvIntOrDefault(key string, defaultValue int) int {
+	strValue := os.Getenv(key)
+	if strValue == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(strValue)
+	if err != nil {
+		return defaultValue
+	}
+	return value
 }
 
 func init() {

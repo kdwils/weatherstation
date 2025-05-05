@@ -2,9 +2,9 @@ package connection
 
 import (
 	"context"
+	"encoding/json"
 
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
+	"github.com/coder/websocket"
 )
 
 // Websocket satisfies the connection interface for a websocket connection
@@ -26,7 +26,11 @@ func NewWebsocket(ctx context.Context, addr string, opts *websocket.DialOptions)
 
 // Write writes a new message to the websocket connection
 func (w Websocket) Write(ctx context.Context, data any) error {
-	return wsjson.Write(ctx, w.conn, data)
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return w.conn.Write(ctx, websocket.MessageText, b)
 }
 
 // Read reads from the websocket connection
@@ -44,6 +48,10 @@ func (w Websocket) Read(ctx context.Context) ([]byte, error) {
 }
 
 // Close closes the websocket connection with status normal closure
-func (w Websocket) Close(ctx context.Context) error {
+func (w Websocket) Close(ctx context.Context, status ...websocket.StatusCode) error {
+	if len(status) != 0 {
+		return w.conn.Close(status[0], "")
+	}
+
 	return w.conn.Close(websocket.StatusNormalClosure, "")
 }
