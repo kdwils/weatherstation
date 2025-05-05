@@ -1,43 +1,72 @@
 package templates
 
 import (
-    "fmt"
-    "github.com/kdwils/weatherstation/pkg/api"
+"fmt"
+"github.com/kdwils/weatherstation/pkg/api"
 )
 
 templ Dashboard(obs *api.ObservationTempest) {
-    @Layout() {
-        <div id="dashboard">
-            <div class="weather-card">
-                <h2>Current Weather</h2>
-                if obs != nil {
-                    <div class="temperature">
-                        { fmt.Sprintf("%.1f°F", obs.TemperatureInFarneheit()) }
-                    </div>
-                    <div class="weather-stats">
-                        <div class="wind">
-                            <span class="stat-label">Wind</span>
-                            <div class="stat-value">
-                                { obs.WindDirection() } at { fmt.Sprintf("%.1f mph", obs.WindSpeedAverageMPH()) }
-                            </div>
-                        </div>
-                        <div class="humidity">
-                            <span class="stat-label">Humidity</span>
-                            <div class="stat-value">
-                                { fmt.Sprintf("%d%%", obs.Data.RelativeHumidity) }
-                            </div>
-                        </div>
-                        <div class="precipitation">
-                            <span class="stat-label">Conditions</span>
-                            <div class="stat-value">
-                                { obs.PrecipitationType() }
-                            </div>
-                        </div>
-                    </div>
-                } else {
-                    <div class="loading">Waiting for data...</div>
-                }
-            </div>
-        </div>
-    }
+@Layout() {
+<div id="dashboard">
+	<div class="weather-card">
+		<h2>Current Weather</h2>
+		if obs != nil {
+		<div class="temperature">
+			{ fmt.Sprintf("%.1f°F", obs.TemperatureInFarneheit()) }
+		</div>
+		<div class="weather-stats">
+			<div class="stat-container">
+				<span class="stat-label">Wind</span>
+				<div class="stat-value">
+					{ obs.WindDirection() } at { fmt.Sprintf("%.1f mph", obs.WindSpeedAverageMPH()) }
+				</div>
+			</div>
+			<div class="stat-container">
+				<span class="stat-label">Humidity</span>
+				<div class="stat-value">
+					{ fmt.Sprintf("%d%%", obs.Data.RelativeHumidity) }
+				</div>
+			</div>
+			<div class="stat-container">
+				<span class="stat-label">Conditions</span>
+				<div class="stat-value">
+					{ obs.PrecipitationType() }
+				</div>
+			</div>
+			<div class="stat-container">
+				<span class="stat-label">Pressure</span>
+				<div class="stat-value">
+					{ fmt.Sprintf("%.1f mb", obs.Data.StationPressure) }
+				</div>
+				<div class="stat-details">
+					<div>Trend: { obs.Summary.PressureTrend }</div>
+				</div>
+			</div>
+			<div class="stat-container">
+				<span class="stat-label">Lightning</span>
+				<div class="stat-value">
+					{ fmt.Sprintf("%d strikes/hr", obs.Summary.StrikeCountOneHour) }
+				</div>
+				<div class="stat-details">
+					<div>Last Strike: { fmt.Sprintf("%.1f miles", obs.AverageLightningStrikeDistanceInMiles()) }</div>
+					<div>3hr Total: { fmt.Sprintf("%d strikes", obs.Summary.StrikeCountThreeHour) }</div>
+				</div>
+			</div>
+			<div class="stat-container">
+				<span class="stat-label">Solar & UV</span>
+				<div class="stat-value">
+					{ fmt.Sprintf("%.1f UV", obs.Data.UltraviolentIndex) }
+				</div>
+				<div class="stat-details">
+					<div>Solar Radiation: { fmt.Sprintf("%d W/m²", obs.Data.SolarRadiation) }</div>
+					<div>Illuminance: { fmt.Sprintf("%d lux", obs.Data.Illuminance) }</div>
+				</div>
+			</div>
+		</div>
+		} else {
+		<div class="loading">Waiting for data...</div>
+		}
+	</div>
+</div>
+}
 }

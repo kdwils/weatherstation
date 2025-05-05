@@ -1,84 +1,94 @@
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --background-color: #f5f6fa;
-    --text-color: #2c3e50;
-    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--background-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 20px;
-    line-height: 1.6;
-  }
-  
-  #dashboard {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-  
-  .weather-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: var(--card-shadow);
-    padding: 2rem;
-    margin: 20px auto;
-  }
-  
-  .weather-card h2 {
-    color: var(--primary-color);
-    margin: 0 0 1.5rem 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-    border-bottom: 2px solid var(--secondary-color);
-    padding-bottom: 0.5rem;
-  }
-  
+  --primary-color: #2c3e50;
+  --secondary-color: #3498db;
+  --background-color: #f5f6fa;
+  --text-color: #2c3e50;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 20px;
+  line-height: 1.6;
+}
+
+#dashboard {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.weather-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  padding: 2rem;
+  margin: 20px auto;
+}
+
+.weather-card h2 {
+  color: var(--primary-color);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid var(--secondary-color);
+  padding-bottom: 0.5rem;
+}
+
+.temperature {
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.weather-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.stat-container {
+  background: rgba(52, 152, 219, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+.stat-label {
+  font-weight: 600;
+  color: var(--secondary-color);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.stat-details {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-top: 0.5rem;
+}
+
+.stat-details div {
+  margin-top: 0.2rem;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+@media (max-width: 600px) {
   .temperature {
-    font-size: 4rem;
-    font-weight: 700;
-    color: var(--primary-color);
-    text-align: center;
-    margin: 1.5rem 0;
+    font-size: 3rem;
   }
-  
+
   .weather-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 2rem;
+    grid-template-columns: 1fr;
   }
-  
-  .wind,
-  .humidity,
-  .precipitation {
-    background: rgba(52, 152, 219, 0.1);
-    padding: 1rem;
-    border-radius: 8px;
-    font-size: 1.1rem;
-  }
-  
-  .stat-label {
-    font-weight: 600;
-    color: var(--secondary-color);
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-  
-  .stat-value {
-    font-size: 1.2rem;
-    color: var(--primary-color);
-  }
-  
-  @media (max-width: 600px) {
-    .temperature {
-      font-size: 3rem;
-    }
-    
-    .weather-stats {
-      grid-template-columns: 1fr;
-    }
-  }
+}
