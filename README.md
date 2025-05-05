@@ -1,6 +1,6 @@
 # Weatherstation
 
-A Go package for listening to [Tempest weather station](https://shop.tempest.earth/products/tempest) events. This package provides a simple interface for consuming real-time weather data from your station at home.
+A Go package for listening to [Tempest weather device](https://apidocs.tempestwx.com/reference/quick-start) events. This package provides a simple interface for consuming real-time weather data from your device at home.
 
 It also ships with a simple web dashboard that can be used to view the current weather data.
 
