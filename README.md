@@ -77,10 +77,6 @@ func main() {
 }
 ```
 
-## Configuration
-
-The package uses [Viper](https://github.com/spf13/viper) for configuration management. You can configure the package using environment variables or a configuration file.
-
 ## Supported Events
 
 The package supports various event types defined in `pkg/tempest/events.go`:
