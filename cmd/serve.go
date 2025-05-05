@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -10,7 +9,7 @@ import (
 	"github.com/kdwils/weatherstation/pkg/api"
 	"github.com/kdwils/weatherstation/pkg/connection"
 	"github.com/kdwils/weatherstation/pkg/tempest"
-	"github.com/kdwils/weatherstation/templates"
+	"github.com/kdwils/weatherstation/server"
 	"github.com/spf13/cobra"
 )
 
@@ -40,84 +39,17 @@ var serveCmd = &cobra.Command{
 
 		listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, device)
 
-		// Handle weather station updates
-		listener.RegisterHandler(tempest.EventObservationTempest, func(ctx context.Context, b []byte) {
-			var obs api.ObservationTempest
-			if err := json.Unmarshal(b, &obs); err != nil {
-				log.Printf("error unmarshaling observation: %v", err)
-				return
-			}
+		srv := server.New(listener)
 
-			log.Printf("received observation: %+v", obs)
+		http.HandleFunc("/", server.CORSMiddleware(srv.HandleHome()))
+		http.HandleFunc("/events", server.CORSMiddleware(srv.HandleEvents()))
+		fs := http.StripPrefix("/static/", http.FileServer(http.Dir("static")))
 
-			mu.Lock()
-			currentObservation = &obs
-			// Broadcast to all connected clients
-			for client := range clients {
-				client <- &obs
-			}
-			mu.Unlock()
-		})
+		http.Handle("/static/", server.CORSMiddleware(fs))
 
-		// Start listening for weather updates
-		go func() {
-			if err := listener.Listen(ctx); err != nil {
-				log.Fatal(err)
-			}
-		}()
-
-		// HTTP handlers
-		http.HandleFunc("/", handleHome)
-		http.HandleFunc("/events", handleEvents)
-		http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-
+		log.Printf("Serving on port 8080")
 		log.Fatal(http.ListenAndServe(":8080", nil))
 	},
-}
-
-func handleHome(w http.ResponseWriter, r *http.Request) {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	err := templates.Dashboard(currentObservation).Render(r.Context(), w)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func handleEvents(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "SSE not supported", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	// Create channel for this client
-	updates := make(chan *api.ObservationTempest)
-	mu.Lock()
-	clients[updates] = true
-	mu.Unlock()
-
-	// Clean up when client disconnects
-	defer func() {
-		mu.Lock()
-		delete(clients, updates)
-		close(updates)
-		mu.Unlock()
-	}()
-
-	// Send updates to client
-	for obs := range updates {
-		if err := templates.Dashboard(obs).Render(r.Context(), w); err != nil {
-			return
-		}
-		flusher.Flush()
-	}
 }
 
 func init() {

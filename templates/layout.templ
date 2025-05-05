@@ -15,5 +15,20 @@ templ Layout() {
                 { children... }
             </main>
         </body>
+
+		<script>
+			const events = new EventSource("http://127.0.0.1:8080/events");
+			events.onmessage = function (event) {
+                try {
+                    const dashboard = document.getElementById('dashboard');
+                    if (dashboard) {
+                        dashboard.innerHTML = event.data;
+                    }
+                } catch (err) {
+                    console.error('Error updating dashboard:', err);
+                }
+			};
+		</script>
+		
     </html>
 }
