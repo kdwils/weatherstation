@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	websocket "github.com/coder/websocket"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,17 +42,22 @@ func (m *MockConnection) EXPECT() *MockConnectionMockRecorder {
 }
 
 // Close mocks base method.
-func (m *MockConnection) Close(arg0 context.Context) error {
+func (m *MockConnection) Close(arg0 context.Context, arg1 ...websocket.StatusCode) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close", arg0)
+	varargs := []any{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Close", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Close indicates an expected call of Close.
-func (mr *MockConnectionMockRecorder) Close(arg0 any) *gomock.Call {
+func (mr *MockConnectionMockRecorder) Close(arg0 any, arg1 ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConnection)(nil).Close), arg0)
+	varargs := append([]any{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockConnection)(nil).Close), varargs...)
 }
 
 // Read mocks base method.
