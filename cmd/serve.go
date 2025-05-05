@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -30,6 +31,7 @@ var serveCmd = &cobra.Command{
 		path := getEnvOrDefault("WEATHERSTATION_TEMPEST_PATH", "")
 		token := getEnvOrDefault("WEATHERSTATION_TEMPEST_TOKEN", "")
 		device := getEnvIntOrDefault("WEATHERSTATION_TEMPEST_DEVICE_ID", 0)
+		serverPort := getEnvIntOrDefault("WEATHERSTATION_SERVER_PORT", 8080)
 
 		ctx := context.Background()
 		conn, err := connection.NewConnection(ctx, scheme, host, path, token)
@@ -39,7 +41,7 @@ var serveCmd = &cobra.Command{
 
 		listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, device)
 
-		srv := server.New(listener)
+		srv := server.New(listener, serverPort)
 
 		http.HandleFunc("/", server.CORSMiddleware(srv.HandleHome()))
 		http.HandleFunc("/events", server.CORSMiddleware(srv.HandleEvents()))
@@ -47,8 +49,8 @@ var serveCmd = &cobra.Command{
 
 		http.Handle("/static/", server.CORSMiddleware(fs))
 
-		log.Printf("Serving on port 8080")
-		log.Fatal(http.ListenAndServe(":8080", nil))
+		log.Printf("Serving on port %d", serverPort)
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil))
 	},
 }
 

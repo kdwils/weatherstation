@@ -5,8 +5,8 @@ import (
 "github.com/kdwils/weatherstation/pkg/api"
 )
 
-templ Dashboard(obs *api.ObservationTempest) {
-@Layout() {
+templ Dashboard(obs *api.ObservationTempest, port int) {
+@Layout(port) {
 <div id="dashboard">
 	<div class="weather-card">
 		<h2>Current Weather</h2>

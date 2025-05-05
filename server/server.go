@@ -21,16 +21,18 @@ type Server struct {
 	clients           map[chan api.ObservationTempest]bool
 	events            chan api.ObservationTempest
 	clientsMu         sync.RWMutex
+	port              int
 }
 
 // New creates a new dashboard expecting a configured tempest listener
-func New(listener tempest.Listener) *Server {
+func New(listener tempest.Listener, port int) *Server {
 	s := &Server{
 		listener:          listener,
 		mu:                sync.RWMutex{},
 		latestObservation: &api.ObservationTempest{},
 		events:            make(chan api.ObservationTempest),
 		clients:           make(map[chan api.ObservationTempest]bool),
+		port:              port,
 	}
 
 	// Start global event handler
@@ -76,10 +78,9 @@ func (s *Server) handleEvents() {
 	}
 }
 
-// HandleHome handles the home page /
 func (s *Server) HandleHome() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := templates.Dashboard(s.latestObservation).Render(r.Context(), w)
+		err := templates.Dashboard(s.latestObservation, s.port).Render(r.Context(), w)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -112,7 +113,7 @@ func (s *Server) HandleEvents() http.HandlerFunc {
 				return
 			case obs := <-clientChan:
 				var buf bytes.Buffer
-				if err := templates.Dashboard(&obs).Render(r.Context(), &buf); err != nil {
+				if err := templates.Dashboard(&obs, s.port).Render(r.Context(), &buf); err != nil {
 					log.Printf("error rendering template: %v", err)
 					continue
 				}
