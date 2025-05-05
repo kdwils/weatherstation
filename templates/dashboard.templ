@@ -11,8 +11,30 @@ templ Dashboard(obs *api.ObservationTempest) {
 	<div class="weather-card">
 		<h2>Current Weather</h2>
 		if obs != nil {
-		<div class="temperature">
-			{ fmt.Sprintf("%.1f°F", obs.TemperatureInFarneheit()) }
+		<div class="temperature-card">
+			<div class="stat-label">
+				Temperature
+			</div>
+			<div class="temperature-details">
+				<div class="temp-stat">
+					<span class="stat-label">Feels Like</span>
+					<div class="stat-value">
+						{ fmt.Sprintf("%.1f°F", obs.FeelsLikeFarenheit()) }
+					</div>
+				</div>
+				<div class="temp-stat">
+					<span class="stat-label">Wind Chill</span>
+					<div class="stat-value">
+						{ fmt.Sprintf("%.1f°F", obs.Summary.WindChill) }
+					</div>
+				</div>
+				<div class="temp-stat">
+					<span class="stat-label">Dew Point</span>
+					<div class="stat-value">
+						{ fmt.Sprintf("%.1f°F", obs.DewPointFarenheit()) }
+					</div>
+				</div>
+			</div>
 		</div>
 		<div class="weather-stats">
 			<div class="stat-container">
