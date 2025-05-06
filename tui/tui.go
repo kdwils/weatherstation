@@ -84,175 +84,152 @@ func (m *model) terminalSize() (width, height int) {
 }
 
 func (m *model) View() string {
+	if m.observation == nil {
+		return lipgloss.Place(80, 24,
+			lipgloss.Center,
+			lipgloss.Center,
+			m.spinner.View())
+	}
+
 	w, h := m.terminalSize()
 
-	if m.quitting {
-		return lipgloss.Place(w, h,
-			lipgloss.Center, lipgloss.Center,
-			"Thanks for watching the weather!")
-	}
+	// Single container sizing
+	containerWidth := w - 8
+	containerHeight := h - 6
 
-	if m.err != nil {
-		return lipgloss.Place(w, h,
-			lipgloss.Center, lipgloss.Center,
-			fmt.Sprintf("Error: %v", m.err))
-	}
+	// Calculate widths for data and art sections
+	dataWidth := (containerWidth / 2) - 2 // Half minus some padding
+	artWidth := (containerWidth / 2) - 2
 
-	if m.observation == nil {
-		return lipgloss.Place(w, h,
-			lipgloss.Center, lipgloss.Center,
-			m.spinner.View()+" Loading weather data...")
-	}
-
-	totalMargin := 4  // 2 units of margin on each side
-	totalPadding := 4 // 2 units of padding on each side
-	totalBorder := 2  // 1 unit of border on each side
-	spacing := 4      // Space between boxes
-
-	// Calculate available width for two boxes
-	availableWidth := w - (2 * (totalMargin + totalPadding + totalBorder)) - spacing
-	boxWidth := availableWidth / 2
-
-	// Style definitions
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("39")).
 		Align(lipgloss.Center).
-		MarginBottom(2).
-		Width(boxWidth)
+		Width(containerWidth - 4). // Account for container padding
+		MarginBottom(1)
 
+	// Update individual styles to maintain left alignment
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("12")). // Light blue
+		Bold(true).
+		Width(15).
+		Align(lipgloss.Left)
+
+	valueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15")). // Bright white
+		Width(20).
+		Align(lipgloss.Left)
+
+	detailsStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8")). // Gray
+		Width(25).
+		Align(lipgloss.Left)
+
+	// Update styles for the main container
 	containerStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("39")).
 		Padding(1, 2).
 		Margin(1, 2).
-		Width(boxWidth).
-		Height(10)
+		Width(containerWidth).
+		Height(containerHeight)
 
-	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("12")).
-		Bold(true).
-		Width(boxWidth).
-		MarginBottom(1).
-		Align(lipgloss.Center)
+	innerContainerStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("39")).
+		Padding(1, 1).
+		AlignHorizontal(lipgloss.Center). // Center horizontally
+		Width(dataWidth - 4).
+		Height(containerHeight - 8)
 
-	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Width(boxWidth).
-		MarginTop(1).
-		MarginBottom(1).
-		Align(lipgloss.Left)
+	// Style for the data section
+	// dataStyle := lipgloss.NewStyle().
+	// 	Width(dataWidth).
+	// 	Height(containerHeight-4).
+	// 	Padding(0, 1)
 
-	detailsStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8")).
-		Width(boxWidth).
-		MarginTop(1).
-		Align(lipgloss.Left)
-
+	// Style for the art section
 	artStyle := lipgloss.NewStyle().
-		Width(20).
-		Height(5).
-		Align(lipgloss.Center)
+		Width(artWidth).
+		Height(containerHeight-4).
+		Align(lipgloss.Center).
+		Padding(0, 1)
 
-	temperature := containerStyle.Render(
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			// Left section - data
-			lipgloss.NewStyle().Width(boxWidth-25).Render(
-				labelStyle.Render("Temperature")+
-					valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit()))+
-					detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit()))+
-					detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill))+
-					detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit()))+
-					detailsStyle.Render(fmt.Sprintf("Humidity: %d%%", m.observation.Data.RelativeHumidity))),
+	// Update content style to manage the width of the content block
+	contentStyle := lipgloss.NewStyle().
+		Width(dataWidth - 12).           // Reduced width to allow centering
+		Align(lipgloss.Left).            // Keep text left-aligned
+		AlignHorizontal(lipgloss.Center) // Center the content block itself
+
+		// Add a section style with bottom margin
+	sectionStyle := lipgloss.NewStyle().
+		MarginBottom(1)
+
+	dataContent := innerContainerStyle.Render(
+		contentStyle.Render(
+			titleStyle.Render("Current Weather Conditions"),
+			lipgloss.JoinVertical(lipgloss.Left,
+				sectionStyle.Render(
+					lipgloss.JoinHorizontal(lipgloss.Top,
+						labelStyle.Render("Temperature"),
+						valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit())),
+						lipgloss.JoinVertical(lipgloss.Left,
+							detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit())),
+							detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)),
+						),
+					),
+				),
+				// Wind section
+				sectionStyle.Render(
+					lipgloss.JoinHorizontal(lipgloss.Top,
+						labelStyle.Render("Wind"),
+						valueStyle.Render(fmt.Sprintf("%s at %.1f mph", m.observation.WindDirection(), m.observation.WindSpeedAverageMPH())),
+						lipgloss.JoinVertical(lipgloss.Left,
+							detailsStyle.Render(fmt.Sprintf("Gust: %.1f mph", m.observation.WindSpeedGustMPH())),
+						),
+					),
+				),
+				// Conditions section
+				sectionStyle.Render(
+					lipgloss.JoinHorizontal(lipgloss.Top,
+						labelStyle.Render("Conditions"),
+						valueStyle.Render(m.observation.PrecipitationType()),
+						lipgloss.JoinVertical(lipgloss.Left,
+							detailsStyle.Render(fmt.Sprintf("Rain: %.2fin/hr", m.observation.RainfallInInches())),
+						),
+					),
+				),
+				// Pressure section
+				lipgloss.JoinHorizontal(lipgloss.Top,
+					labelStyle.Render("Pressure"),
+					valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)),
+					lipgloss.JoinVertical(lipgloss.Left,
+						detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)),
+					),
+				),
+			),
 		),
 	)
-
-	windAverage := fmt.Sprintf("%s at %.1f mph",
-		m.observation.WindDirection(),
-		m.observation.WindSpeedAverageMPH())
-
-	wind := containerStyle.Render(
-		labelStyle.Render("Wind") +
-			valueStyle.Render(windAverage) +
-			detailsStyle.Render(fmt.Sprintf("Gust: %s at %.1f mph", m.observation.WindDirection(), m.observation.WindSpeedGustMPH())) +
-			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)))
-
-	conditions := containerStyle.Render(
-		lipgloss.JoinHorizontal(
-			lipgloss.Top,
-			// Left section - data
-			lipgloss.NewStyle().Width(boxWidth-25).Render(
-				labelStyle.Render("Conditions")+
-					valueStyle.Render(m.observation.PrecipitationType())+
-					detailsStyle.Render(fmt.Sprintf("Rainfall: %.2fin", m.observation.RainfallInInches()))+
-					detailsStyle.Render(fmt.Sprintf("Rain Last Hour: %.2fin", m.observation.Summary.PrecipTotalOneHour))+
-					detailsStyle.Render(fmt.Sprintf("Rainfall Yesterday: %.2fin", m.observation.RainfallYesterdayInInches()))),
-			// Right section - art
-			artStyle.Render(m.getConditionsArt()),
-		),
+	// Remove the data style render since we're handling alignment in the content style
+	content := lipgloss.JoinHorizontal(lipgloss.Top,
+		dataContent, // Remove dataStyle.Render()
+		artStyle.Render(m.getConditionsArt()),
 	)
+	mainContainer := containerStyle.Render(content)
 
-	pressure := containerStyle.Render(
-		labelStyle.Render("Pressure") +
-			valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)) +
-			detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)))
-
-	lightning := containerStyle.Render(lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		labelStyle.Render("Lightning")+
-			valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour))+
-			detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles()))+
-			detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour))))
-	// lightning := containerStyle.Render(
-	// 	labelStyle.Render("Lightning") +
-	// 		valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour)) +
-	// 		detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles())) +
-	// 		detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour)))
-
-	solar := containerStyle.Render(
-		labelStyle.Render("Solar & UV") +
-			valueStyle.Render(fmt.Sprintf("%.1f UV", m.observation.Data.UltraviolentIndex)) +
-			detailsStyle.Render(fmt.Sprintf("Solar Radiation: %d W/m²", m.observation.Data.SolarRadiation)) +
-			detailsStyle.Render(fmt.Sprintf("Illuminance: %d lux", m.observation.Data.Illuminance)))
-
-	// Join sections horizontally
-	row1 := lipgloss.JoinHorizontal(lipgloss.Top,
-		temperature,
-		lipgloss.NewStyle().Width(spacing).Render(""), // Add explicit spacing
-		wind,
-	)
-
-	row2 := lipgloss.JoinHorizontal(lipgloss.Top,
-		conditions,
-		lipgloss.NewStyle().Width(spacing).Render(""),
-		pressure,
-	)
-
-	row3 := lipgloss.JoinHorizontal(lipgloss.Top,
-		lightning,
-		lipgloss.NewStyle().Width(spacing).Render(""),
-		solar,
-	)
-
-	row1 = lipgloss.Place(w, lipgloss.Height(temperature), lipgloss.Center, lipgloss.Center, row1)
-	row2 = lipgloss.Place(w, lipgloss.Height(conditions), lipgloss.Center, lipgloss.Center, row2)
-	row3 = lipgloss.Place(w, lipgloss.Height(lightning), lipgloss.Center, lipgloss.Center, row3)
-
-	content := titleStyle.Render("Current Weather Conditions") + "\n\n" +
-		row1 + "\n" +
-		row2 + "\n" +
-		row3 + "\n\n" +
+	// Add title and quit message
+	fullView := lipgloss.JoinVertical(lipgloss.Center,
+		mainContainer,
 		lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Width(w).
-			Render("Press ESC to quit")
+			Render("Press ESC to quit"),
+	)
 
-	// Center everything in terminal
 	return lipgloss.Place(w, h,
 		lipgloss.Center,
 		lipgloss.Center,
-		content)
+		fullView)
 }
 
 type observationMsg struct {
