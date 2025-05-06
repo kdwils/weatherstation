@@ -92,73 +92,35 @@ func (m *model) View() string {
 		Foreground(lipgloss.Color("39")).
 		MarginBottom(1)
 
-	containerStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		Padding(0, 1).
-		Margin(0, 1).
-		Background(lipgloss.Color("0")).
-		Width(30)
+	valueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("86"))
 
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("12")).
-		Bold(true)
+		Foreground(lipgloss.Color("241"))
 
-	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15"))
+	var s string
+	s += titleStyle.Render("Current Weather Conditions") + "\n\n"
 
-	detailsStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8")).
-		MarginLeft(2)
+	s += labelStyle.Render("Temperature: ") +
+		valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit())) + "\n"
 
-	// Build sections
-	temperature := containerStyle.Render(
-		labelStyle.Render("Temperature\n") +
-			valueStyle.Render(fmt.Sprintf("%.1f°F\n", m.observation.TemperatureInFarneheit())) +
-			detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F\n", m.observation.FeelsLikeFarenheit())) +
-			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F\n", m.observation.Summary.WindChill)) +
-			detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit())))
+	s += labelStyle.Render("Feels Like: ") +
+		valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.FeelsLikeFarenheit())) + "\n"
 
-	wind := containerStyle.Render(
-		labelStyle.Render("Wind\n") +
-			valueStyle.Render(fmt.Sprintf("%s at %.1f mph\n",
-				m.observation.WindDirection(),
-				m.observation.WindSpeedAverageMPH())))
+	s += labelStyle.Render("Wind: ") +
+		valueStyle.Render(fmt.Sprintf("%s at %.1f mph",
+			m.observation.WindDirection(),
+			m.observation.WindSpeedAverageMPH())) + "\n"
 
-	humidity := containerStyle.Render(
-		labelStyle.Render("Humidity\n") +
-			valueStyle.Render(fmt.Sprintf("%d%%", m.observation.Data.RelativeHumidity)))
+	s += labelStyle.Render("Humidity: ") +
+		valueStyle.Render(fmt.Sprintf("%d%%", m.observation.Data.RelativeHumidity)) + "\n"
 
-	conditions := containerStyle.Render(
-		labelStyle.Render("Conditions\n") +
-			valueStyle.Render(m.observation.PrecipitationType()))
+	s += labelStyle.Render("Pressure: ") +
+		valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)) + "\n"
 
-	pressure := containerStyle.Render(
-		labelStyle.Render("Pressure\n") +
-			valueStyle.Render(fmt.Sprintf("%.1f mb\n", m.observation.Data.StationPressure)) +
-			detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)))
+	s += "\n" + labelStyle.Render("Press ESC to quit")
 
-	lightning := containerStyle.Render(
-		labelStyle.Render("Lightning\n") +
-			valueStyle.Render(fmt.Sprintf("%d strikes/hr\n", m.observation.Summary.StrikeCountOneHour)) +
-			detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles\n", m.observation.AverageLightningStrikeDistanceInMiles())) +
-			detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour)))
-
-	solar := containerStyle.Render(
-		labelStyle.Render("Solar & UV\n") +
-			valueStyle.Render(fmt.Sprintf("%.1f UV\n", m.observation.Data.UltraviolentIndex)) +
-			detailsStyle.Render(fmt.Sprintf("Solar Radiation: %d W/m²\n", m.observation.Data.SolarRadiation)) +
-			detailsStyle.Render(fmt.Sprintf("Illuminance: %d lux", m.observation.Data.Illuminance)))
-
-	// Layout sections in a grid
-	row1 := lipgloss.JoinHorizontal(lipgloss.Top, temperature, wind, humidity)
-	row2 := lipgloss.JoinHorizontal(lipgloss.Top, conditions, pressure)
-	row3 := lipgloss.JoinHorizontal(lipgloss.Top, lightning, solar)
-
-	return titleStyle.Render("Current Weather Conditions") + "\n\n" +
-		row1 + "\n" +
-		row2 + "\n" +
-		row3 + "\n\n" +
-		labelStyle.Render("Press ESC to quit")
+	return s
 }
 
 type observationMsg struct {
