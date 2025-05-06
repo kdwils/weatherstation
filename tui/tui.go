@@ -127,7 +127,7 @@ func (m *model) View() string {
 		Width(30).
 		MarginTop(1).
 		MarginBottom(1).
-		Align(lipgloss.Left)
+		Align(lipgloss.Center)
 
 	detailsStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8")).
@@ -143,15 +143,22 @@ func (m *model) View() string {
 			detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit())) +
 			detailsStyle.Render(fmt.Sprintf("Humidity: %d%%", m.observation.Data.RelativeHumidity)))
 
+	windAverage := fmt.Sprintf("%s at %.1f mph",
+		m.observation.WindDirection(),
+		m.observation.WindSpeedAverageMPH())
+
 	wind := containerStyle.Render(
 		labelStyle.Render("Wind") +
-			valueStyle.Render(fmt.Sprintf("%s at %.1f mph",
-				m.observation.WindDirection(),
-				m.observation.WindSpeedAverageMPH())))
+			valueStyle.Render(windAverage) +
+			detailsStyle.Render(fmt.Sprintf("Gust: %s at %.1f mph", m.observation.WindDirection(), m.observation.WindSpeedGustMPH())) +
+			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)))
 
 	conditions := containerStyle.Render(
 		labelStyle.Render("Conditions") +
-			valueStyle.Render(m.observation.PrecipitationType()))
+			valueStyle.Render(m.observation.PrecipitationType()) +
+			detailsStyle.Render(fmt.Sprintf("Rainfall: %.2fin", m.observation.RainfallInInches())) +
+			detailsStyle.Render(fmt.Sprintf("Rain Last Hour: %.2fin", m.observation.Summary.PrecipTotalOneHour)) +
+			detailsStyle.Render(fmt.Sprintf("Rainfall Yesterday: %.2fin", m.observation.RainfallYesterdayInInches())))
 
 	pressure := containerStyle.Render(
 		labelStyle.Render("Pressure") +

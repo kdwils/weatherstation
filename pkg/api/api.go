@@ -276,7 +276,7 @@ func (o ObservationTempest) RainfallInInches() float64 {
 	return millimetersToInches(o.Data.RainAccumulated)
 }
 
-func (o ObservationTempest) RainFail() float64 {
+func (o ObservationTempest) RainfallYesterdayInInches() float64 {
 	return millimetersToInches(float64(o.Summary.PrecipMinutesLocalYesterday))
 }
 
