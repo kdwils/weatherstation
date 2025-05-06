@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"os"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,6 +12,7 @@ import (
 	"github.com/kdwils/weatherstation/pkg/api"
 	"github.com/kdwils/weatherstation/pkg/connection"
 	"github.com/kdwils/weatherstation/pkg/tempest"
+	"golang.org/x/term"
 )
 
 type model struct {
@@ -44,7 +45,6 @@ func (m model) Init() tea.Cmd {
 
 // Add a new command to wait for updates
 func (m model) waitForUpdate() tea.Msg {
-	log.Println("wwaiting for updates...")
 	return <-m.updates
 }
 
@@ -73,54 +73,127 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m *model) terminalSize() (width, height int) {
+	w, h, _ := term.GetSize(int(os.Stdout.Fd()))
+	return w, h
+}
+
 func (m *model) View() string {
+	w, h := m.terminalSize()
+
 	if m.quitting {
-		return "Thanks for watching the weather!\n"
+		return lipgloss.Place(w, h,
+			lipgloss.Center, lipgloss.Center,
+			"Thanks for watching the weather!")
 	}
 
 	if m.err != nil {
-		return fmt.Sprintf("Error: %v\n", m.err)
+		return lipgloss.Place(w, h,
+			lipgloss.Center, lipgloss.Center,
+			fmt.Sprintf("Error: %v", m.err))
 	}
 
 	if m.observation == nil {
-		return fmt.Sprintf("\n\n   %s Loading weather data...\n\n", m.spinner.View())
+		return lipgloss.Place(w, h,
+			lipgloss.Center, lipgloss.Center,
+			m.spinner.View()+" Loading weather data...")
 	}
 
 	// Style definitions
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("39")).
-		MarginBottom(1)
+		Align(lipgloss.Center).
+		MarginBottom(2).
+		Width(w)
 
-	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("86"))
+	containerStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("39")).
+		Padding(1, 2).
+		Margin(1, 2).
+		Width(35).
+		Height(10)
 
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241"))
+		Foreground(lipgloss.Color("12")).
+		Bold(true).
+		Width(30).
+		MarginBottom(1).
+		Align(lipgloss.Center)
 
-	var s string
-	s += titleStyle.Render("Current Weather Conditions") + "\n\n"
+	valueStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15")).
+		Width(30).
+		MarginTop(1).
+		MarginBottom(1).
+		Align(lipgloss.Left)
 
-	s += labelStyle.Render("Temperature: ") +
-		valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit())) + "\n"
+	detailsStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("8")).
+		Width(28).
+		MarginTop(1).
+		Align(lipgloss.Left)
 
-	s += labelStyle.Render("Feels Like: ") +
-		valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.FeelsLikeFarenheit())) + "\n"
+	temperature := containerStyle.Render(
+		labelStyle.Render("Temperature") +
+			valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit())) +
+			detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit())) +
+			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)) +
+			detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit())) +
+			detailsStyle.Render(fmt.Sprintf("Humidity: %d%%", m.observation.Data.RelativeHumidity)))
 
-	s += labelStyle.Render("Wind: ") +
-		valueStyle.Render(fmt.Sprintf("%s at %.1f mph",
-			m.observation.WindDirection(),
-			m.observation.WindSpeedAverageMPH())) + "\n"
+	wind := containerStyle.Render(
+		labelStyle.Render("Wind") +
+			valueStyle.Render(fmt.Sprintf("%s at %.1f mph",
+				m.observation.WindDirection(),
+				m.observation.WindSpeedAverageMPH())))
 
-	s += labelStyle.Render("Humidity: ") +
-		valueStyle.Render(fmt.Sprintf("%d%%", m.observation.Data.RelativeHumidity)) + "\n"
+	conditions := containerStyle.Render(
+		labelStyle.Render("Conditions") +
+			valueStyle.Render(m.observation.PrecipitationType()))
 
-	s += labelStyle.Render("Pressure: ") +
-		valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)) + "\n"
+	pressure := containerStyle.Render(
+		labelStyle.Render("Pressure") +
+			valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)) +
+			detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)))
 
-	s += "\n" + labelStyle.Render("Press ESC to quit")
+	lightning := containerStyle.Render(
+		labelStyle.Render("Lightning") +
+			valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour)) +
+			detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles())) +
+			detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour)))
 
-	return s
+	solar := containerStyle.Render(
+		labelStyle.Render("Solar & UV") +
+			valueStyle.Render(fmt.Sprintf("%.1f UV", m.observation.Data.UltraviolentIndex)) +
+			detailsStyle.Render(fmt.Sprintf("Solar Radiation: %d W/m²", m.observation.Data.SolarRadiation)) +
+			detailsStyle.Render(fmt.Sprintf("Illuminance: %d lux", m.observation.Data.Illuminance)))
+
+	// Join sections horizontally
+	row1 := lipgloss.JoinHorizontal(lipgloss.Top, temperature, wind)
+	row2 := lipgloss.JoinHorizontal(lipgloss.Top, conditions, pressure)
+	row3 := lipgloss.JoinHorizontal(lipgloss.Top, lightning, solar)
+
+	// Center each row
+	row1 = lipgloss.Place(w, lipgloss.Height(temperature), lipgloss.Center, lipgloss.Center, row1)
+	row2 = lipgloss.Place(w, lipgloss.Height(conditions), lipgloss.Center, lipgloss.Center, row2)
+	row3 = lipgloss.Place(w, lipgloss.Height(lightning), lipgloss.Center, lipgloss.Center, row3)
+
+	content := titleStyle.Render("Current Weather Conditions") + "" +
+		row1 + "" +
+		row2 + "" +
+		row3 + "" +
+		lipgloss.NewStyle().
+			Align(lipgloss.Center).
+			Width(w).
+			Render("Press ESC to quit")
+
+	// Center everything in terminal
+	return lipgloss.Place(w, h,
+		lipgloss.Center,
+		lipgloss.Center,
+		content)
 }
 
 type observationMsg struct {
@@ -134,6 +207,7 @@ type errMsg struct {
 func (m model) StartListener() {
 	m.listener.RegisterHandler(tempest.EventObservationTempest, m.handleObservation)
 	m.listener.Listen(context.Background())
+	return
 }
 
 func (m *model) handleObservation(ctx context.Context, b []byte) {

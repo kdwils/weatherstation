@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
 	go.uber.org/mock v0.5.2
+	golang.org/x/term v0.32.0
 )
 
 require (
