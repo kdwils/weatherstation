@@ -99,39 +99,61 @@ func (m *model) View() string {
 			m.spinner.View()+" Loading weather data...")
 	}
 
+	totalMargin := 4  // 2 units of margin on each side
+	totalPadding := 4 // 2 units of padding on each side
+	totalBorder := 2  // 1 unit of border on each side
+	spacing := 4      // Space between boxes
+
+	// Calculate available width for two boxes
+	availableWidth := w - (2 * (totalMargin + totalPadding + totalBorder)) - spacing
+	boxWidth := availableWidth / 2
+
+	// Calculate text scale based on terminal width
+	// var textScale float64
+	// switch {
+	// case w >= 200:
+	// 	textScale = 1.5
+	// case w >= 150:
+	// 	textScale = 1.2
+	// case w >= 100:
+	// 	textScale = 1.0
+	// default:
+	// 	textScale = 0.8
+	// }
+
 	// Style definitions
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("39")).
 		Align(lipgloss.Center).
 		MarginBottom(2).
-		Width(w)
+		Width(boxWidth)
 
 	containerStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("39")).
 		Padding(1, 2).
 		Margin(1, 2).
-		Width(35).
+		Width(boxWidth).
 		Height(10)
 
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("12")).
 		Bold(true).
-		Width(30).
+		Width(boxWidth).
 		MarginBottom(1).
 		Align(lipgloss.Center)
 
 	valueStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("15")).
-		Width(30).
+		Width(boxWidth).
 		MarginTop(1).
 		MarginBottom(1).
-		Align(lipgloss.Center)
+		Align(lipgloss.Left)
 
 	detailsStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8")).
-		Width(28).
+		Width(boxWidth).
 		MarginTop(1).
 		Align(lipgloss.Left)
 
@@ -178,19 +200,37 @@ func (m *model) View() string {
 			detailsStyle.Render(fmt.Sprintf("Illuminance: %d lux", m.observation.Data.Illuminance)))
 
 	// Join sections horizontally
-	row1 := lipgloss.JoinHorizontal(lipgloss.Top, temperature, wind)
-	row2 := lipgloss.JoinHorizontal(lipgloss.Top, conditions, pressure)
-	row3 := lipgloss.JoinHorizontal(lipgloss.Top, lightning, solar)
+	row1 := lipgloss.JoinHorizontal(lipgloss.Top,
+		temperature,
+		lipgloss.NewStyle().Width(spacing).Render(""), // Add explicit spacing
+		wind,
+	)
 
-	// Center each row
+	row2 := lipgloss.JoinHorizontal(lipgloss.Top,
+		conditions,
+		lipgloss.NewStyle().Width(spacing).Render(""),
+		pressure,
+	)
+
+	row3 := lipgloss.JoinHorizontal(lipgloss.Top,
+		lightning,
+		lipgloss.NewStyle().Width(spacing).Render(""),
+		solar,
+	)
+
 	row1 = lipgloss.Place(w, lipgloss.Height(temperature), lipgloss.Center, lipgloss.Center, row1)
 	row2 = lipgloss.Place(w, lipgloss.Height(conditions), lipgloss.Center, lipgloss.Center, row2)
 	row3 = lipgloss.Place(w, lipgloss.Height(lightning), lipgloss.Center, lipgloss.Center, row3)
 
-	content := titleStyle.Render("Current Weather Conditions") + "" +
-		row1 + "" +
-		row2 + "" +
-		row3 + "" +
+	// Center each row
+	// row1 = lipgloss.Place(w, lipgloss.Height(temperature), lipgloss.Center, lipgloss.Center, row1)
+	// row2 = lipgloss.Place(w, lipgloss.Height(conditions), lipgloss.Center, lipgloss.Center, row2)
+	// row3 = lipgloss.Place(w, lipgloss.Height(lightning), lipgloss.Center, lipgloss.Center, row3)
+
+	content := titleStyle.Render("Current Weather Conditions") + "\n\n" +
+		row1 + "\n" +
+		row2 + "\n" +
+		row3 + "\n\n" +
 		lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Width(w).
@@ -225,4 +265,58 @@ func (m *model) handleObservation(ctx context.Context, b []byte) {
 	}
 
 	m.updates <- observationMsg{observation: &obs}
+}
+
+const (
+	sunnyArt = `
+   \  |  /
+    \ | /
+  ----●----
+    / | \
+   /  |  \
+`
+	rainyArt = `
+     .--.
+   .(    ).
+  (___.__).)
+   ' ' ' '
+  ' ' ' '
+`
+	cloudyArt = `
+      .--.
+   .-(    ).
+  (___.__)__)
+`
+	lightningArt = `
+     .--.
+   .(    ).
+  (___.__).)
+     ⚡ ⚡
+    ⚡ ⚡
+`
+	nightArt = `
+   *  .  *
+     ☾   *
+  *    .
+`
+)
+
+// Add a helper function to get weather art
+func (m *model) getWeatherArt() string {
+	// If it's nighttime (UV index near 0), show night art
+	if m.observation.Data.UltraviolentIndex < 0.1 {
+		return nightArt
+	}
+
+	// Check conditions in order of priority
+	switch {
+	case m.observation.Summary.StrikeCountOneHour > 0:
+		return lightningArt
+	case m.observation.PrecipitationType() != "None":
+		return rainyArt
+	case m.observation.Data.UltraviolentIndex > 5:
+		return sunnyArt
+	default:
+		return cloudyArt
+	}
 }
