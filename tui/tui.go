@@ -93,79 +93,65 @@ func (m *model) View() string {
 
 	w, h := m.terminalSize()
 
-	// Single container sizing
-	containerWidth := w - 8
-	containerHeight := h - 6
+	// Main container for entire terminal with outer border
+	mainContainerStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("39")).
+		Padding(1, 1).
+		Width(w - 4).
+		Height(h - 4)
 
-	// Calculate widths for data and art sections
-	dataWidth := (containerWidth / 2) - 2 // Half minus some padding
-	artWidth := (containerWidth / 2) - 2
+	// Calculate quadrant sizes
+	quadrantWidth := (w - 8) / 2
+	quadrantHeight := (h - 8) / 2
 
+	// Style for data quadrant (with inner border)
+	dataQuadrantStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("39")).
+		Padding(1, 1).
+		Width(quadrantWidth - 2).
+		Height(quadrantHeight - 2)
+
+	// Style for other quadrants (no border)
+	plainQuadrantStyle := lipgloss.NewStyle().
+		Padding(1, 1).
+		Width(quadrantWidth - 2).
+		Height(quadrantHeight - 2)
+
+	// Styles for data content
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("39")).
 		Align(lipgloss.Center).
-		Width(containerWidth - 4). // Account for container padding
+		Width(quadrantWidth - 8).
 		MarginBottom(1)
 
-	// Update individual styles to maintain left alignment
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("12")). // Light blue
+		Foreground(lipgloss.Color("12")).
 		Bold(true).
 		Width(15).
 		Align(lipgloss.Left)
 
 	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")). // Bright white
+		Foreground(lipgloss.Color("15")).
 		Width(20).
 		Align(lipgloss.Left)
 
 	detailsStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8")). // Gray
+		Foreground(lipgloss.Color("8")).
 		Width(25).
 		Align(lipgloss.Left)
 
-	// Update styles for the main container
-	containerStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("39")).
-		Padding(1, 2).
-		Margin(1, 2).
-		Width(containerWidth).
-		Height(containerHeight)
-
-	innerContainerStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("39")).
-		Padding(1, 1).
-		AlignHorizontal(lipgloss.Center). // Center horizontally
-		Width(dataWidth - 4).
-		Height(containerHeight - 8)
-
-	// Style for the data section
-	// dataStyle := lipgloss.NewStyle().
-	// 	Width(dataWidth).
-	// 	Height(containerHeight-4).
-	// 	Padding(0, 1)
-
-	// Style for the art section
-	artStyle := lipgloss.NewStyle().
-		Width(artWidth).
-		Height(containerHeight-4).
-		Align(lipgloss.Center).
-		Padding(0, 1)
-
-	// Update content style to manage the width of the content block
 	contentStyle := lipgloss.NewStyle().
-		Width(dataWidth - 12).           // Reduced width to allow centering
-		Align(lipgloss.Left).            // Keep text left-aligned
-		AlignHorizontal(lipgloss.Center) // Center the content block itself
+		Width(quadrantWidth - 8).
+		AlignHorizontal(lipgloss.Center)
 
-		// Add a section style with bottom margin
 	sectionStyle := lipgloss.NewStyle().
 		MarginBottom(1)
 
-	dataContent := innerContainerStyle.Render(
+	// Build data content for quadrant 1
+	dataContent := dataQuadrantStyle.Render(
 		contentStyle.Render(
 			titleStyle.Render("Current Weather Conditions"),
 			lipgloss.JoinVertical(lipgloss.Left,
@@ -179,7 +165,6 @@ func (m *model) View() string {
 						),
 					),
 				),
-				// Wind section
 				sectionStyle.Render(
 					lipgloss.JoinHorizontal(lipgloss.Top,
 						labelStyle.Render("Wind"),
@@ -189,7 +174,6 @@ func (m *model) View() string {
 						),
 					),
 				),
-				// Conditions section
 				sectionStyle.Render(
 					lipgloss.JoinHorizontal(lipgloss.Top,
 						labelStyle.Render("Conditions"),
@@ -199,25 +183,47 @@ func (m *model) View() string {
 						),
 					),
 				),
-				// Pressure section
-				lipgloss.JoinHorizontal(lipgloss.Top,
-					labelStyle.Render("Pressure"),
-					valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)),
-					lipgloss.JoinVertical(lipgloss.Left,
-						detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)),
+				sectionStyle.Render(
+					lipgloss.JoinHorizontal(lipgloss.Top,
+						labelStyle.Render("Pressure"),
+						valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)),
+						lipgloss.JoinVertical(lipgloss.Left,
+							detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)),
+						),
 					),
 				),
 			),
 		),
 	)
-	// Remove the data style render since we're handling alignment in the content style
-	content := lipgloss.JoinHorizontal(lipgloss.Top,
-		dataContent, // Remove dataStyle.Render()
-		artStyle.Render(m.getConditionsArt()),
-	)
-	mainContainer := containerStyle.Render(content)
 
-	// Add title and quit message
+	// Build art content for quadrant 2
+	artContent := plainQuadrantStyle.Render(
+		contentStyle.Render(
+			m.getConditionsArt(),
+		),
+	)
+
+	// Create the quadrants layout
+	topRow := lipgloss.JoinHorizontal(lipgloss.Top,
+		dataContent,
+		artContent,
+	)
+
+	bottomRow := lipgloss.JoinHorizontal(lipgloss.Top,
+		plainQuadrantStyle.Render("Quadrant 3"),
+		plainQuadrantStyle.Render("Quadrant 4"),
+	)
+
+	// Join all quadrants vertically
+	allQuadrants := lipgloss.JoinVertical(lipgloss.Left,
+		topRow,
+		bottomRow,
+	)
+
+	// Render main container with all quadrants
+	mainContainer := mainContainerStyle.Render(allQuadrants)
+
+	// Add quit message below
 	fullView := lipgloss.JoinVertical(lipgloss.Center,
 		mainContainer,
 		lipgloss.NewStyle().
