@@ -6,7 +6,7 @@ It also ships with a simple web dashboard that can be used to view the current w
 
 ## Installation
 
-To install the package, run the following command:
+To install the binary, run the following command:
 
 From Go
 ```bash
@@ -20,6 +20,8 @@ This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
 The dashboard is a simple web application that uses the Go template engine to render the current weather data.
 
 The dashboard is served on port 8080 by default, but can be configured using the `WEATHERSTATION_SERVER_PORT` environment variable.
+
+![alt text](images/dashboard.png)
 
 To serve the dashboard, run the following command:
 
@@ -78,6 +80,8 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
+
+    deviceID := 123
 
     ctx := context.Background()
     listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, deviceID)
