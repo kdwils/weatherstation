@@ -16,12 +16,13 @@ import (
 )
 
 type model struct {
-	listener    tempest.Listener
-	observation *api.ObservationTempest
-	spinner     spinner.Model
-	err         error
-	quitting    bool
-	updates     chan tea.Msg // Add channel for updates
+	listener       tempest.Listener
+	observation    *api.ObservationTempest
+	spinner        spinner.Model
+	err            error
+	quitting       bool
+	lightningFlash bool
+	updates        chan tea.Msg // Add channel for updates
 }
 
 func InitialModel(conn connection.Connection, device int) *model {
@@ -63,6 +64,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case observationMsg:
 		m.observation = msg.observation
+		return m, m.waitForUpdate
+
+	case lightningStrikeMsg:
+		m.lightningFlash = true
 		return m, m.waitForUpdate
 
 	case errMsg:
@@ -108,19 +113,6 @@ func (m *model) View() string {
 	availableWidth := w - (2 * (totalMargin + totalPadding + totalBorder)) - spacing
 	boxWidth := availableWidth / 2
 
-	// Calculate text scale based on terminal width
-	// var textScale float64
-	// switch {
-	// case w >= 200:
-	// 	textScale = 1.5
-	// case w >= 150:
-	// 	textScale = 1.2
-	// case w >= 100:
-	// 	textScale = 1.0
-	// default:
-	// 	textScale = 0.8
-	// }
-
 	// Style definitions
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
@@ -157,13 +149,24 @@ func (m *model) View() string {
 		MarginTop(1).
 		Align(lipgloss.Left)
 
+	artStyle := lipgloss.NewStyle().
+		Width(20).
+		Height(5).
+		Align(lipgloss.Center)
+
 	temperature := containerStyle.Render(
-		labelStyle.Render("Temperature") +
-			valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit())) +
-			detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit())) +
-			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)) +
-			detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit())) +
-			detailsStyle.Render(fmt.Sprintf("Humidity: %d%%", m.observation.Data.RelativeHumidity)))
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			// Left section - data
+			lipgloss.NewStyle().Width(boxWidth-25).Render(
+				labelStyle.Render("Temperature")+
+					valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit()))+
+					detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit()))+
+					detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill))+
+					detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit()))+
+					detailsStyle.Render(fmt.Sprintf("Humidity: %d%%", m.observation.Data.RelativeHumidity))),
+		),
+	)
 
 	windAverage := fmt.Sprintf("%s at %.1f mph",
 		m.observation.WindDirection(),
@@ -176,22 +179,36 @@ func (m *model) View() string {
 			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)))
 
 	conditions := containerStyle.Render(
-		labelStyle.Render("Conditions") +
-			valueStyle.Render(m.observation.PrecipitationType()) +
-			detailsStyle.Render(fmt.Sprintf("Rainfall: %.2fin", m.observation.RainfallInInches())) +
-			detailsStyle.Render(fmt.Sprintf("Rain Last Hour: %.2fin", m.observation.Summary.PrecipTotalOneHour)) +
-			detailsStyle.Render(fmt.Sprintf("Rainfall Yesterday: %.2fin", m.observation.RainfallYesterdayInInches())))
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			// Left section - data
+			lipgloss.NewStyle().Width(boxWidth-25).Render(
+				labelStyle.Render("Conditions")+
+					valueStyle.Render(m.observation.PrecipitationType())+
+					detailsStyle.Render(fmt.Sprintf("Rainfall: %.2fin", m.observation.RainfallInInches()))+
+					detailsStyle.Render(fmt.Sprintf("Rain Last Hour: %.2fin", m.observation.Summary.PrecipTotalOneHour))+
+					detailsStyle.Render(fmt.Sprintf("Rainfall Yesterday: %.2fin", m.observation.RainfallYesterdayInInches()))),
+			// Right section - art
+			artStyle.Render(m.getConditionsArt()),
+		),
+	)
 
 	pressure := containerStyle.Render(
 		labelStyle.Render("Pressure") +
 			valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)) +
 			detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)))
 
-	lightning := containerStyle.Render(
-		labelStyle.Render("Lightning") +
-			valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour)) +
-			detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles())) +
-			detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour)))
+	lightning := containerStyle.Render(lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		labelStyle.Render("Lightning")+
+			valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour))+
+			detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles()))+
+			detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour))))
+	// lightning := containerStyle.Render(
+	// 	labelStyle.Render("Lightning") +
+	// 		valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour)) +
+	// 		detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles())) +
+	// 		detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour)))
 
 	solar := containerStyle.Render(
 		labelStyle.Render("Solar & UV") +
@@ -222,11 +239,6 @@ func (m *model) View() string {
 	row2 = lipgloss.Place(w, lipgloss.Height(conditions), lipgloss.Center, lipgloss.Center, row2)
 	row3 = lipgloss.Place(w, lipgloss.Height(lightning), lipgloss.Center, lipgloss.Center, row3)
 
-	// Center each row
-	// row1 = lipgloss.Place(w, lipgloss.Height(temperature), lipgloss.Center, lipgloss.Center, row1)
-	// row2 = lipgloss.Place(w, lipgloss.Height(conditions), lipgloss.Center, lipgloss.Center, row2)
-	// row3 = lipgloss.Place(w, lipgloss.Height(lightning), lipgloss.Center, lipgloss.Center, row3)
-
 	content := titleStyle.Render("Current Weather Conditions") + "\n\n" +
 		row1 + "\n" +
 		row2 + "\n" +
@@ -247,12 +259,17 @@ type observationMsg struct {
 	observation *api.ObservationTempest
 }
 
+type lightningStrikeMsg struct {
+	strike *api.LightningStrike
+}
+
 type errMsg struct {
 	err error
 }
 
 func (m model) StartListener() {
 	m.listener.RegisterHandler(tempest.EventObservationTempest, m.handleObservation)
+	m.listener.RegisterHandler(tempest.EventLightingStrike, m.handleLightningStrike)
 	m.listener.Listen(context.Background())
 	return
 }
@@ -260,63 +277,136 @@ func (m model) StartListener() {
 func (m *model) handleObservation(ctx context.Context, b []byte) {
 	var obs api.ObservationTempest
 	if err := json.Unmarshal(b, &obs); err != nil {
-		m.updates <- errMsg{err: err}
 		return
 	}
 
 	m.updates <- observationMsg{observation: &obs}
 }
 
+func (m *model) handleLightningStrike(ctx context.Context, b []byte) {
+	var obs api.LightningStrike
+	err := json.Unmarshal(b, &obs)
+	if err != nil {
+		return
+	}
+
+	m.updates <- errMsg{err: err}
+}
+
 const (
 	sunnyArt = `
-   \  |  /
-    \ | /
-  ----●----
-    / | \
-   /  |  \
+   \     /
+    \   /
+ ---- O ----
+    /   \
+   /	 \
 `
 	rainyArt = `
      .--.
    .(    ).
   (___.__).)
    ' ' ' '
-  ' ' ' '
+  ' ' ' ' '
 `
 	cloudyArt = `
       .--.
    .-(    ).
   (___.__)__)
 `
-	lightningArt = `
+	lightningCloudArt = `
      .--.
    .(    ).
   (___.__).)
-     ⚡ ⚡
-    ⚡ ⚡
+`
+	lightningArt = `
+    /\
+    / \
 `
 	nightArt = `
    *  .  *
      ☾   *
-  *    .
+  *    .	
+`
+
+	// Sun variations
+	sunnyArt1 = `
+    \\|//
+   -- O --
+    //|\\
+`
+	sunnyArt2 = `
+   \  |  /
+  *--☀️--*
+   /  |  \
+`
+	// Rain variations
+	heavyRainCloudArt = `
+     .--.
+   .(    ).
+  (___.__).)
+`
+	heavyRainArt = `
+	||||||||| 
+   |||||||||||`
+	lightRainCloudArt = `
+     .--.
+   .(    ).
+  (___.__).)
+`
+	lightRainDropsArt = `
+	' . ' .
+   . ' . '`
+	partialSunArt = `    
+	\  /
+ --- O ---`
+
+	partlyCloudyArt = `
+    .--.
+  .(    ).
+ (__.___).)
+`
+	windyCloudArt = `
+      .--.   ~
+   .-/    \---
+  (___.___)--~
+     ~~~~
 `
 )
 
-// Add a helper function to get weather art
-func (m *model) getWeatherArt() string {
-	// If it's nighttime (UV index near 0), show night art
+var (
+	sunStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("220")) // Bright yellow
+	rainStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))  // Light blue
+	cloudStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("245")) // Gray
+	lightningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("226")) // Yellow
+	nightStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("99"))  // Purple
+	heavyRainStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("27"))  // Darker blue
+	windStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("251")) // Light gray
+)
+
+func (m *model) getConditionsArt() string {
 	if m.observation.Data.UltraviolentIndex < 0.1 {
-		return nightArt
+		return nightStyle.Render(nightArt)
 	}
 
-	// Check conditions in order of priority
 	switch {
-	case m.observation.Summary.StrikeCountOneHour > 0:
-		return lightningArt
-	case m.observation.PrecipitationType() != "None":
-		return rainyArt
+	case m.lightningFlash:
+		return cloudStyle.Render(lightningCloudArt) + lightningStyle.Render(lightningArt)
+	case m.observation.PrecipitationType() == "Raining":
+		if m.observation.Summary.PrecipTotalOneHour > 0.5 {
+			return cloudStyle.Render(heavyRainCloudArt) + heavyRainStyle.Render(heavyRainArt)
+		}
+		return cloudStyle.Render(lightRainCloudArt) + rainStyle.Render(lightRainDropsArt)
+	case m.observation.WindSpeedAverageMPH() > 15:
+		return windStyle.Render(windyCloudArt)
 	case m.observation.Data.UltraviolentIndex > 5:
-		return sunnyArt
+		if m.observation.Data.UltraviolentIndex > 8 {
+			return sunStyle.Render(sunnyArt2)
+		}
+		return sunStyle.Render(sunnyArt1)
 	default:
-		return cloudyArt
+		if m.observation.Data.UltraviolentIndex > 0 {
+			return sunStyle.Render(partialSunArt) + cloudStyle.Render(partlyCloudyArt)
+		}
+		return cloudStyle.Render(cloudyArt)
 	}
 }
