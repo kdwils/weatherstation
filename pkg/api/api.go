@@ -159,6 +159,12 @@ type ObservationTempest struct {
 	Device  int                       `json:"device_id"`
 }
 
+type LightningStrike struct {
+	TimeEpoch    int `json:"time_epoch"`
+	DistanceInKM int `json:"distance_in_km"`
+	Energy       int `json:"energy"`
+}
+
 type ObservationTempestData struct {
 	TimeEpoch                       int     `json:"time_epoch"`
 	WindLull                        float64 `json:"wind_lull"`
@@ -182,6 +188,23 @@ type ObservationTempestData struct {
 	RainAccumulationFinalCheck      float64 `json:"rain_accumulation_final_check"`
 	LocalRainAccumulationFinalCheck float64 `json:"local_rain_accumulation_final_check"`
 	PrecipitationAnalysisType       int     `json:"precipitation_analysis_type"`
+}
+
+func (o *LightningStrike) UnmarshalJSON(b []byte) error {
+	data := make([]int, 0)
+	err := json.Unmarshal(b, &data)
+	if err != nil {
+		return fmt.Errorf("invalid lightning strike event: %v", err)
+	}
+
+	if len(data) < 3 {
+		return fmt.Errorf("no lightning strike data in payload")
+	}
+
+	o.TimeEpoch = data[0]
+	o.DistanceInKM = data[1]
+	o.Energy = data[2]
+	return nil
 }
 
 func (o *ObservationTempestData) UnmarshalJSON(b []byte) error {
@@ -276,7 +299,7 @@ func (o ObservationTempest) RainfallInInches() float64 {
 	return millimetersToInches(o.Data.RainAccumulated)
 }
 
-func (o ObservationTempest) RainFail() float64 {
+func (o ObservationTempest) RainfallYesterdayInInches() float64 {
 	return millimetersToInches(float64(o.Summary.PrecipMinutesLocalYesterday))
 }
 
