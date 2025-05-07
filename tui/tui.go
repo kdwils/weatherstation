@@ -118,7 +118,7 @@ func (m *model) View() string {
 
 	dataQuadrantStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("39")).
+		BorderForeground(lipgloss.Color("#fafafa")).
 		Padding(1).
 		Margin(1).
 		Width(quadrantWidth - 1).
@@ -126,7 +126,7 @@ func (m *model) View() string {
 
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("39")).
+		Foreground(lipgloss.Color("#fafafa")).
 		Align(lipgloss.Center).
 		Width(quadrantWidth - 4).
 		PaddingBottom(2)

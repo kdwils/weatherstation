@@ -2,7 +2,9 @@
 
 A Go package for listening to [Tempest weather device](https://apidocs.tempestwx.com/reference/quick-start) events. This package provides a simple interface for consuming real-time weather data from your device at home.
 
-It also ships with a simple web dashboard that can be used to view the current weather data.
+The binary also ships with two interfaces:
+* A terminal UI build with 
+* A simple web dashboard
 
 ## Installation
 
@@ -15,6 +17,14 @@ go install github.com/kdwils/weatherstation@latest
 
 This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
 
+## The Terminal UI
+
+A terminal UI also shipws with the binary. To run it, simply run the following command:
+```shell
+weatherstation tui
+```
+![teminal ui](images/tui.png)
+
 ## The Dashboard
 
 The dashboard is a simple web application that uses the Go template engine to render the current weather data.
@@ -23,13 +33,7 @@ The dashboard is served on port 8080 by default, but can be configured using the
 
 ![alt text](images/dashboard.png)
 
-To serve the dashboard, run the following command:
-
-From the local directory:
-```bash
-go run main.go serve
-```
-
+To serve the dashboard http server, run the following command:
 From the binary:
 ```bash
 weatherstation serve 
@@ -125,3 +129,7 @@ The package supports various event types defined in `pkg/tempest/events.go`:
 - `EventDeviceOnline`/`EventDeviceOffline`: Device status
 - `EventStationOnline`/`EventStationOffline`: Station status
 - `EventRapidWind`: Rapid wind measurements
+
+## Acknowledgements
+* [go-asciigraph](https://github.com/guptarohit/asciigraph) for the graph rendering
+* [go-lipgloss](https://github.com/charmbracelet/lipgloss) for the terminal UI
