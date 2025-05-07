@@ -386,7 +386,7 @@ func (m *model) renderTemperatureGraph(width, height int) string {
 		asciigraph.Width(width-10),
 		asciigraph.Precision(1),
 		asciigraph.SeriesColors(asciigraph.Red),
-		asciigraph.SeriesLegends("Temp °F"),
+		asciigraph.SeriesLegends("°F"),
 	)
 
 	return temp
