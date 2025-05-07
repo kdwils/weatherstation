@@ -111,10 +111,7 @@ func (m *model) View() string {
 			lipgloss.Center,
 			m.spinner.View())
 	}
-
-	mainContainerStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("39"))
+	mainContainerStyle := lipgloss.NewStyle()
 
 	quadrantWidth := (m.width - 8) / 2
 	quadrantHeight := (m.height - 8) / 2
@@ -124,8 +121,8 @@ func (m *model) View() string {
 		BorderForeground(lipgloss.Color("39")).
 		Padding(1).
 		Margin(1).
-		Width(quadrantWidth - 2).
-		Height(quadrantHeight - 2)
+		Width(quadrantWidth - 1).
+		Height(quadrantHeight - 1)
 
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
