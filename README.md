@@ -8,6 +8,30 @@ The binary also ships with two interfaces:
 
 ## Installation
 
+Environment Variables:
+
+Websocket api reference: https://weatherflow.github.io/Tempest/api/ws.html
+The following environment variables are required to connect to the Tempest `websocket` API:
+```shell
+export WEATHERSTATION_TEMPEST_DEVICE_ID='<your-device-id>'
+export WEATHERSTATION_TEMPEST_TOKEN='<your-token>'
+export WEATHERSTATION_TEMPEST_SCHEME='wss'
+export WEATHERSTATION_TEMPEST_PATH='/swd/data'
+export WEATHERSTATION_TEMPEST_HOST='ws.weatherflow.com'
+```
+
+I am unable to test `udp` connectivity as I am testing this remotely and don't have a device connected to my local network.
+UDP api reference: https://apidocs.tempestwx.com/reference/tempest-udp-broadcast
+
+In theory, you can connect using `udp` by setting the following environment variables:
+```shell
+export WEATHERSTATION_TEMPEST_DEVICE_ID='<your-device-id>'
+export WEATHERSTATION_TEMPEST_TOKEN='<your-token>'
+export WEATHERSTATION_TEMPEST_PATH='/swd/data'
+export WEATHERSTATION_TEMPEST_HOST='<your-device-lan-ip-address>:54000'
+export WEATHERSTATION_TEMPEST_SCHEME='udp'
+```
+
 To install the binary, run the following command:
 
 From Go
