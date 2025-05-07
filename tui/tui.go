@@ -4,17 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/guptarohit/asciigraph"
+
 	"github.com/kdwils/weatherstation/pkg/api"
 	"github.com/kdwils/weatherstation/pkg/connection"
 	"github.com/kdwils/weatherstation/pkg/tempest"
-	"golang.org/x/term"
 )
 
 type model struct {
@@ -27,6 +25,9 @@ type model struct {
 	updates          chan tea.Msg // Add channel for updates
 	width            int
 	height           int
+	tempHistory      []float64
+	windSpeedHistory []float64
+	pressureHistory  []float64
 }
 
 func InitialModel(conn connection.Connection, device int) *model {
@@ -35,9 +36,10 @@ func InitialModel(conn connection.Connection, device int) *model {
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return &model{
-		listener: tempest.NewEventListener(conn, tempest.ListenGroupStart, device),
-		spinner:  s,
-		updates:  make(chan tea.Msg),
+		listener:    tempest.NewEventListener(conn, tempest.ListenGroupStart, device),
+		spinner:     s,
+		updates:     make(chan tea.Msg),
+		tempHistory: make([]float64, 0, 30), // Keep last 30 readings
 	}
 }
 
@@ -76,6 +78,18 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.lightningCounter > 0 {
 			m.lightningCounter--
 		}
+		m.tempHistory = append(m.tempHistory, m.observation.TemperatureInFarneheit())
+		if len(m.tempHistory) > 30 {
+			m.tempHistory = m.tempHistory[1:]
+		}
+		m.windSpeedHistory = append(m.windSpeedHistory, m.observation.WindSpeedAverageMPH())
+		if len(m.windSpeedHistory) > 30 {
+			m.windSpeedHistory = m.windSpeedHistory[1:]
+		}
+		m.pressureHistory = append(m.pressureHistory, m.observation.Data.StationPressure)
+		if len(m.pressureHistory) > 30 {
+			m.pressureHistory = m.pressureHistory[1:]
+		}
 		return m, m.waitForUpdate
 
 	case lightningStrikeMsg:
@@ -90,175 +104,212 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *model) terminalSize() (width, height int) {
-	w, h, _ := term.GetSize(int(os.Stdout.Fd()))
-	return w, h
-}
-
 func (m *model) View() string {
-
 	if m.observation == nil {
-		return lipgloss.Place(80, 24,
+		return lipgloss.Place(m.width, m.height,
 			lipgloss.Center,
 			lipgloss.Center,
 			m.spinner.View())
 	}
 
-	// Main container for entire terminal with outer border
 	mainContainerStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("39")).
-		Padding(0, 1, 1, 1).
-		Width(m.width - 4).
-		Height(m.height - 4)
+		BorderForeground(lipgloss.Color("39"))
 
-	// Calculate quadrant sizes
 	quadrantWidth := (m.width - 8) / 2
 	quadrantHeight := (m.height - 8) / 2
 
-	// Style for data quadrant (with inner border)
 	dataQuadrantStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("39")).
 		Padding(1).
+		Margin(1).
 		Width(quadrantWidth - 2).
 		Height(quadrantHeight - 2)
 
-	// Style for other quadrants (no border)
-	plainQuadrantStyle := lipgloss.NewStyle().
-		Padding(1).
-		Width(quadrantWidth - 2).
-		Height(quadrantHeight - 2)
-
-	// Update text styles to be more prominent
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("39")).
 		Align(lipgloss.Center).
-		Width(quadrantWidth - 8).
-		MarginBottom(2)
+		Width(quadrantWidth - 4).
+		PaddingBottom(2)
 
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("12")).
 		Bold(true).
-		Width(20).
+		Width(quadrantWidth - 8).
 		Align(lipgloss.Left)
 
 	valueStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("15")).
-		Width(25).
+		Width(quadrantWidth - 8).
 		Align(lipgloss.Left)
 
 	detailsStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("8")).
-		Width(30).
+		Width(quadrantWidth - 8).
 		Align(lipgloss.Left)
 
 	contentStyle := lipgloss.NewStyle().
-		Width(quadrantWidth - 8).
-		AlignHorizontal(lipgloss.Center)
+		Width(quadrantWidth - 4).
+		AlignHorizontal(lipgloss.Left).
+		PaddingLeft(2).
+		PaddingRight(2)
 
 	sectionStyle := lipgloss.NewStyle().
-		MarginBottom(2)
+		MarginBottom(1).
+		MarginRight(2).
+		Width((quadrantWidth) / 3)
+
+	graphStyle := lipgloss.NewStyle().
+		Width(quadrantWidth - 8).
+		Height(quadrantHeight - 8).
+		AlignVertical(lipgloss.Bottom).
+		MarginBottom(0).
+		PaddingBottom(0)
 
 	temperatureSection := sectionStyle.Render(
-		lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.JoinVertical(lipgloss.Left,
 			labelStyle.Render("Temperature"),
 			valueStyle.Render(fmt.Sprintf("%.1f°F", m.observation.TemperatureInFarneheit())),
-			lipgloss.JoinVertical(lipgloss.Left,
-				detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit())),
-				detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)),
-			),
+			detailsStyle.Render(fmt.Sprintf("Feels Like: %.1f°F", m.observation.FeelsLikeFarenheit())),
+			detailsStyle.Render(fmt.Sprintf("Wind Chill: %.1f°F", m.observation.Summary.WindChill)),
+			detailsStyle.Render(fmt.Sprintf("Dew Point: %.1f°F", m.observation.DewPointFarenheit())),
 		),
 	)
 
 	windSection := sectionStyle.Render(
-		lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.JoinVertical(lipgloss.Left,
 			labelStyle.Render("Wind"),
 			valueStyle.Render(fmt.Sprintf("%s at %.1f mph", m.observation.WindDirection(), m.observation.WindSpeedAverageMPH())),
-			lipgloss.JoinVertical(lipgloss.Left,
-				detailsStyle.Render(fmt.Sprintf("Gust: %.1f mph", m.observation.WindSpeedGustMPH())),
-			),
+			detailsStyle.Render(fmt.Sprintf("Gust: %.1f mph", m.observation.WindSpeedGustMPH())),
 		),
 	)
 
-	conditionsSection := sectionStyle.Render(
-		lipgloss.JoinHorizontal(lipgloss.Top,
-			labelStyle.Render("Conditions"),
+	precipitationSection := sectionStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Center,
+			labelStyle.Render("Preciptiation"),
 			valueStyle.Render(m.observation.PrecipitationType()),
-			lipgloss.JoinVertical(
-				lipgloss.Left,
-				detailsStyle.Render(fmt.Sprintf("Rainfall Today:     %.2fin", m.observation.RainfallInInches())),
-				detailsStyle.Render(fmt.Sprintf("Rainfall Hourly:    %.2fin/hr", m.observation.Summary.PrecipTotalOneHour)),
-				detailsStyle.Render(fmt.Sprintf("Rainfall Yesterday: %.2fin", m.observation.Summary.PrecipAccumLocalYesterdayFinal)),
-			),
+			detailsStyle.Render(fmt.Sprintf("Today: %.2fin", m.observation.RainfallInInches())),
+			detailsStyle.Render(fmt.Sprintf("Rainfall Hourly: %.2fin/hr", m.observation.Summary.PrecipTotalOneHour)),
+			detailsStyle.Render(fmt.Sprintf("Total Yesterday: %.2fin", m.observation.Summary.PrecipAccumLocalYesterdayFinal)),
 		),
 	)
 
 	pressureSection := sectionStyle.Render(
-		lipgloss.JoinHorizontal(lipgloss.Top,
+		lipgloss.JoinVertical(lipgloss.Center,
 			labelStyle.Render("Pressure"),
 			valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)),
-			lipgloss.JoinVertical(lipgloss.Left,
-				detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)),
-			),
+			detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)),
 		),
 	)
 
-	// Build data content for quadrant 1
-	dataContent := dataQuadrantStyle.Render(
+	ultraVioletIndexSection := sectionStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Center,
+			labelStyle.Render("UV Index"),
+			valueStyle.Render(fmt.Sprintf("%0.2f", m.observation.Data.UltraviolentIndex)),
+		),
+	)
+
+	illuminanceSection := sectionStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Top,
+			labelStyle.Render("Illuminance"),
+			valueStyle.Render(fmt.Sprintf("%d lux", m.observation.Data.Illuminance)),
+		),
+	)
+	solarRadiationSection := sectionStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Top,
+			labelStyle.Render("Solar Radiation"),
+			valueStyle.Render(fmt.Sprintf("%d W/m²", m.observation.Data.SolarRadiation)),
+		),
+	)
+
+	lightningSection := sectionStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Top,
+			labelStyle.Render("Lightning Strikes"),
+			valueStyle.Render(fmt.Sprintf("%d strikes/hr", m.observation.Summary.StrikeCountOneHour)),
+			detailsStyle.Render(fmt.Sprintf("Last Strike: %.1f miles", m.observation.AverageLightningStrikeDistanceInMiles())),
+			detailsStyle.Render(fmt.Sprintf("3hr Total: %d strikes", m.observation.Summary.StrikeCountThreeHour)),
+		),
+	)
+
+	reportInterval := sectionStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Top,
+			labelStyle.Render("Report Interval"),
+			valueStyle.Render(fmt.Sprintf("%d min", m.observation.Data.ReportInterval)),
+		),
+	)
+
+	currentRows := []string{
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			temperatureSection,
+			precipitationSection,
+			windSection,
+		),
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			pressureSection,
+			lightningSection,
+			illuminanceSection,
+		),
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			solarRadiationSection,
+			ultraVioletIndexSection,
+			reportInterval,
+		),
+	}
+
+	currentConditionsContent := dataQuadrantStyle.Render(
 		contentStyle.Render(
-			titleStyle.Render("Current Weather Conditions"),
+			titleStyle.Render("Current Conditions"),
 			lipgloss.JoinVertical(lipgloss.Left,
-				temperatureSection,
-				windSection,
-				conditionsSection,
-				pressureSection,
+				currentRows...,
 			),
 		),
 	)
 
-	// Style for art quadrant
-	artStyle := lipgloss.NewStyle().
-		Width(quadrantWidth - 8).
-		Height(quadrantHeight - 4).
-		Align(lipgloss.Center).
-		AlignVertical(lipgloss.Center)
-
-	// Build art content for quadrant 2
-	artContent := plainQuadrantStyle.Render(
-		artStyle.Render(
-			m.getArt(),
-		),
+	temperatureGraph := dataQuadrantStyle.Render(
+		titleStyle.Render("Temperature Trend") +
+			graphStyle.Render(
+				m.renderTemperatureGraph(quadrantWidth-4, quadrantHeight-4),
+			),
 	)
 
-	// Create the quadrants layout
+	pressureGraph := dataQuadrantStyle.Render(
+		titleStyle.Render("Pressure Trend") +
+			graphStyle.Render(
+				m.renderPressureGraph(quadrantWidth-4, quadrantHeight-4),
+			),
+	)
+
+	windGraph := dataQuadrantStyle.Render(
+		titleStyle.Render("Wind Speed Trend") +
+			graphStyle.Render(
+				m.renderWindGraph(quadrantWidth-4, quadrantHeight-4),
+			),
+	)
+
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top,
-		dataContent,
-		artContent,
+		currentConditionsContent,
+		temperatureGraph,
 	)
 
 	bottomRow := lipgloss.JoinHorizontal(lipgloss.Top,
-		plainQuadrantStyle.Render("Quadrant 3"),
-		plainQuadrantStyle.Render("Quadrant 4"),
+		pressureGraph,
+		windGraph,
 	)
 
-	// Join all quadrants vertically
-	allQuadrants := lipgloss.JoinVertical(lipgloss.Left,
+	allQuadrants := lipgloss.JoinVertical(lipgloss.Center,
 		topRow,
 		bottomRow,
 	)
 
-	// Render main container with all quadrants
 	mainContainer := mainContainerStyle.Render(allQuadrants)
 
-	// Add quit message below
 	fullView := lipgloss.JoinVertical(lipgloss.Center,
 		mainContainer,
-		lipgloss.NewStyle().
-			Align(lipgloss.Center).
-			Width(m.width).
-			Render("Press ESC to quit"),
 	)
 
 	return lipgloss.Place(m.width, m.height,
@@ -305,107 +356,41 @@ func (m *model) handleLightningStrike(ctx context.Context, b []byte) {
 	m.updates <- errMsg{err: err}
 }
 
-// Modify your getArt function to use scaled art
-func (m *model) getArt() string {
-	// Calculate available space in the art quadrant
-	artWidth := (m.width - 8) / 2   // Quadrant width
-	artHeight := (m.height - 8) / 2 // Quadrant height
+func (m *model) renderWindGraph(width, height int) string {
 
-	currentHour := time.Now().Hour()
-	isNightTime := currentHour >= 22 || currentHour < 5
-	isRaining := m.observation.PrecipitationType() == "Raining"
-	isLightning := m.lightningCounter > 0
-	isHeavyRain := m.observation.Summary.PrecipTotalOneHour > 0.5
-
-	var art string
-	if m.observation.Data.UltraviolentIndex < 0.1 && isNightTime {
-		art = scaleArt(moon, artWidth, artHeight)
-		return renderNightSky(art)
-	}
-
-	switch {
-	case isLightning:
-		// art = scaleArt(lightRain, artWidth, artHeight)
-		// return renderLightningArt(art)
-	case isRaining:
-		if isHeavyRain {
-			art = scaleArt(heavyRain, artWidth, artHeight)
-			return renderRainArt(art)
-		}
-		art = scaleArt(lightRain, artWidth, artHeight)
-		return renderRainArt(art)
-	case m.observation.Data.UltraviolentIndex > 5:
-		art = scaleArt(sunny, artWidth, artHeight)
-		return renderSunny(art)
-	}
-
-	if m.observation.Data.UltraviolentIndex > 0 {
-		art = scaleArt(partialSun, artWidth, artHeight)
-		return renderPartialSunArt(art)
-	}
-
-	art = scaleArt(clouds, artWidth, artHeight)
-	return renderSunny(art)
+	return asciigraph.Plot(
+		m.windSpeedHistory,
+		asciigraph.Height(height-20),
+		asciigraph.Width(width-10),
+		asciigraph.Precision(1),
+		asciigraph.SeriesColors(asciigraph.Blue),
+		asciigraph.SeriesLegends("mph"),
+	)
 }
 
-func scaleArt(art string, width, height int) string {
-	lines := strings.Split(art, "\n")
-	if len(lines) == 0 {
-		return ""
-	}
+func (m *model) renderPressureGraph(width, height int) string {
 
-	// Find the longest line for reference
-	maxLen := 0
-	for _, line := range lines {
-		if len(line) > maxLen {
-			maxLen = len(line)
-		}
-	}
+	return asciigraph.Plot(
+		m.pressureHistory,
+		asciigraph.Height(height-20),
+		asciigraph.Width(width-10),
+		asciigraph.Precision(1),
+		asciigraph.SeriesLegends("mb"),
+		asciigraph.SeriesColors(
+			asciigraph.Indigo,
+		),
+	)
+}
 
-	// Scale horizontally by duplicating characters
-	var scaledLines []string
-	horizontalScale := float64(width) / float64(maxLen)
+func (m *model) renderTemperatureGraph(width, height int) string {
+	temp := asciigraph.Plot(
+		m.tempHistory,
+		asciigraph.Height(height-20),
+		asciigraph.Width(width-10),
+		asciigraph.Precision(1),
+		asciigraph.SeriesColors(asciigraph.Red),
+		asciigraph.SeriesLegends("Temp °F"),
+	)
 
-	for _, line := range lines {
-		var scaledLine strings.Builder
-		for _, char := range line {
-			// Repeat each character based on scale factor
-			repeats := int(horizontalScale)
-			if repeats < 1 {
-				repeats = 1
-			}
-			scaledLine.WriteString(strings.Repeat(string(char), repeats))
-		}
-
-		// Trim or pad to exact width
-		lineStr := scaledLine.String()
-		if len(lineStr) > width {
-			lineStr = lineStr[:width]
-		} else {
-			lineStr += strings.Repeat(" ", width-len(lineStr))
-		}
-		scaledLines = append(scaledLines, lineStr)
-	}
-
-	// Scale vertically by duplicating lines
-	var finalLines []string
-	verticalScale := float64(height) / float64(len(lines))
-
-	for _, line := range scaledLines {
-		// Repeat each line based on scale factor
-		repeats := int(verticalScale)
-		if repeats < 1 {
-			repeats = 1
-		}
-		for i := 0; i < repeats && len(finalLines) < height; i++ {
-			finalLines = append(finalLines, line)
-		}
-	}
-
-	// Trim to exact height if needed
-	if len(finalLines) > height {
-		finalLines = finalLines[:height]
-	}
-
-	return strings.Join(finalLines, "\n")
+	return temp
 }
