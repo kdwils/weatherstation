@@ -58,7 +58,7 @@ This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
 
 ## The Terminal UI
 
-A terminal UI also shipws with the binary. To run it, simply run the following command:
+To start the terminal UI:
 ```shell
 weatherstation tui
 ```
@@ -72,7 +72,7 @@ The dashboard is served on port 8080 by default, but can be configured using the
 
 ![alt text](images/dashboard.png)
 
-To serve the dashboard http server, run the following command:
+To serve the dashboard http server:
 From the binary:
 ```bash
 weatherstation serve 
