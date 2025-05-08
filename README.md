@@ -1,12 +1,19 @@
 # Weatherstation
 
-A Go package for listening to [Tempest weather device](https://apidocs.tempestwx.com/reference/quick-start) events. This package provides a simple interface for consuming real-time weather data from your device at home.
+Weatherstation is a Go pkg for consuming real-time data from a [Tempest weather device](https://apidocs.tempestwx.com/reference/quick-start) events.
 
-The binary also ships with two interfaces:
-* A terminal UI build with 
-* A simple web dashboard
+Additionally it provide a simple web dashboard and a terminal UI.
 
 ## Installation
+
+To install the binary, run the following command:
+
+From Go
+```bash
+go install github.com/kdwils/weatherstation@latest
+```
+
+
 
 Environment Variables:
 
@@ -30,13 +37,6 @@ export WEATHERSTATION_TEMPEST_TOKEN='<your-token>'
 export WEATHERSTATION_TEMPEST_PATH='/swd/data'
 export WEATHERSTATION_TEMPEST_HOST='<your-device-lan-ip-address>:54000'
 export WEATHERSTATION_TEMPEST_SCHEME='udp'
-```
-
-To install the binary, run the following command:
-
-From Go
-```bash
-go install github.com/kdwils/weatherstation@latest
 ```
 
 This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
