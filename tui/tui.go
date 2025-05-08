@@ -92,6 +92,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.waitForUpdate
 
 	case lightningStrikeMsg:
+		m.updates <- lightningStrikeMsg{strike: msg.strike}
 		return m, m.waitForUpdate
 
 	case errMsg:
