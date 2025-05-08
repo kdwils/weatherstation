@@ -35,7 +35,7 @@ export WEATHERSTATION_TEMPEST_HOST='<your-device-lan-ip-address>:54000'
 export WEATHERSTATION_TEMPEST_SCHEME='udp'
 ```
 
-> [!NOTE]
+> [!WARNING]
 > UDP connectivity is currently untested in this project due to remote development without access to a local device. If it doesn't work for you, open an issue and I'll try to help.
 
 This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
