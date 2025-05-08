@@ -9,15 +9,15 @@ The binary ships with two interfaces:
 ```mermaid
 sequenceDiagram
     participant User
-    participant TerminalUI
+    participant Interface
     participant WeatherDevice
 
-    User->>TerminalUI: Launches TUI
-    TerminalUI->>WeatherDevice: Subscribes to real-time data
-    WeatherDevice-->>TerminalUI: Sends observation data
-    TerminalUI->>TerminalUI: Append history metrics
-    TerminalUI->>TerminalUI: Render updated graphs
-    TerminalUI-->>User: Display updated dashboard
+    User->>Interface: Launches TUI
+    Interface->>WeatherDevice: Subscribes to real-time data
+    WeatherDevice-->>Interface: Sends observation data
+    Interface->>Interface: Append history metrics
+    Interface->>Interface: Render updated graphs
+    Interface-->>User: Display updated interface
 ```
 
 ## Installation
