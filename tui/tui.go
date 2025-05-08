@@ -399,7 +399,7 @@ func (m *model) renderTemperatureGraph(width, height int) string {
 			asciigraph.Red,
 			asciigraph.Blue,
 		),
-		asciigraph.SeriesLegends("Temp", "Feels Like", "Dew Point"),
+		asciigraph.SeriesLegends("feels like", "temp", "dew point"),
 	)
 
 	return temp
