@@ -1,24 +1,23 @@
 # Weatherstation
+ 
+Weatherstation is a Go package for consuming real-time event data from a [Tempest weather device](https://apidocs.tempestwx.com/reference/quick-start).
 
-Weatherstation is a Go pkg for consuming real-time data from a [Tempest weather device](https://apidocs.tempestwx.com/reference/quick-start) events.
-
-Additionally it provide a simple web dashboard and a terminal UI.
+The binary ships with two interfaces:
+* A terminal UI
+* A simple web dashboard
 
 ## Installation
 
-To install the binary, run the following command:
-
+To install the binary, run:
 From Go
 ```bash
 go install github.com/kdwils/weatherstation@latest
 ```
 
-
-
 Environment Variables:
 
-Websocket api reference: https://weatherflow.github.io/Tempest/api/ws.html
-The following environment variables are required to connect to the Tempest `websocket` API:
+WebSocket API Reference: https://weatherflow.github.io/Tempest/api/ws.html
+The following environment variables are required to connect to the Tempest WebSocket API:
 ```shell
 export WEATHERSTATION_TEMPEST_DEVICE_ID='<your-device-id>'
 export WEATHERSTATION_TEMPEST_TOKEN='<your-token>'
@@ -27,10 +26,7 @@ export WEATHERSTATION_TEMPEST_PATH='/swd/data'
 export WEATHERSTATION_TEMPEST_HOST='ws.weatherflow.com'
 ```
 
-I am unable to test `udp` connectivity as I am testing this remotely and don't have a device connected to my local network.
-UDP api reference: https://apidocs.tempestwx.com/reference/tempest-udp-broadcast
-
-In theory, you can connect using `udp` by setting the following environment variables:
+To attempt a UDP connection, set the following environment variables:
 ```shell
 export WEATHERSTATION_TEMPEST_DEVICE_ID='<your-device-id>'
 export WEATHERSTATION_TEMPEST_TOKEN='<your-token>'
@@ -38,6 +34,9 @@ export WEATHERSTATION_TEMPEST_PATH='/swd/data'
 export WEATHERSTATION_TEMPEST_HOST='<your-device-lan-ip-address>:54000'
 export WEATHERSTATION_TEMPEST_SCHEME='udp'
 ```
+
+> [!NOTE]
+> UDP connectivity is currently untested in this project due to remote development without access to a local device. If it doesn't work for you, open an issue and I'll try to help.
 
 This will install the `weatherstation` binary in your `$GOPATH/bin` directory.
 
@@ -63,23 +62,26 @@ From the binary:
 weatherstation serve 
 ```
 
-Then open http://localhost:8080 (or wherever its hosted) in your browser to view the dashboard.
+Then open http://localhost:8080 (or wherever it's hosted) in your browser to view the dashboard.
 
 ## Package Structure
 
 The package is organized into several modules under the `pkg` directory:
 
 ### api
+`/pkg/api/`
 - Contains data models and client interfaces for interacting with the Tempest API
 - Handles parsing and conversion of weather observation data
 - Provides utility functions for unit conversions (m/s to mph, celsius to fahrenheit, etc.)
 
 ### connection
+`/pkg/connection/`
 - Provides abstract connection interfaces for different protocols
 - Implements both WebSocket and UDP connections
 - Handles connection lifecycle (connect, read, write, close)
 
 ### tempest
+`/pkg/tempest/`
 - Core event listening functionality
 - Event type definitions and constants
 - Handler registration for different event types
@@ -109,9 +111,13 @@ func main() {
         log.Fatal(err)
     }
 
-    deviceID := 123
 
     ctx := context.Background()
+    deviceID := 123
+    conn, err := connection.NewConnection(ctx, "wss", "ws.weatherflow.com", "/swd/data", "your-token")
+    if err != nil {
+        log.Fatal(err)
+    }
     listener := tempest.NewEventListener(conn, tempest.ListenGroupStart, deviceID)
 
     // Register handlers for different events
@@ -144,7 +150,7 @@ func main() {
 
 ## Supported Events
 
-The package supports various event types defined in `pkg/tempest/events.go`:
+The package supports the following event types (defined in `pkg/tempest/events.go`):
 
 - `EventConnectionOpened`: Connection establishment
 - `EventObservationTempest`: Weather observations
@@ -155,5 +161,5 @@ The package supports various event types defined in `pkg/tempest/events.go`:
 - `EventRapidWind`: Rapid wind measurements
 
 ## Acknowledgements
-* [go-asciigraph](https://github.com/guptarohit/asciigraph) for the graph rendering
-* [go-lipgloss](https://github.com/charmbracelet/lipgloss) for the terminal UI
+* [go-asciigraph](https://github.com/guptarohit/asciigraph) — for rendering terminal graphs.
+* [go-lipgloss](https://github.com/charmbracelet/lipgloss) — for styling the terminal UI.
