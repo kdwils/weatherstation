@@ -33,7 +33,7 @@ type model struct {
 	windSpeedHistory []float64
 	pressureHistory  []float64
 	humidityHistory  []float64
-	DewPointHistory  []float64
+	dewPointHistory  []float64
 	feelsLikeHistory []float64
 }
 
@@ -88,7 +88,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.windSpeedHistory = appendAndTrim(m.windSpeedHistory, m.observation.WindSpeedAverageMPH(), maxHistory)
 		m.pressureHistory = appendAndTrim(m.pressureHistory, m.observation.Data.StationPressure, maxHistory)
 		m.humidityHistory = appendAndTrim(m.humidityHistory, float64(m.observation.Data.RelativeHumidity), maxHistory)
-		m.DewPointHistory = appendAndTrim(m.DewPointHistory, m.observation.DewPointFarenheit(), maxHistory)
+		m.dewPointHistory = appendAndTrim(m.dewPointHistory, m.observation.DewPointFarenheit(), maxHistory)
 		return m, m.waitForUpdate
 
 	case lightningStrikeMsg:
@@ -388,7 +388,7 @@ func (m *model) renderTemperatureGraph(width, height int) string {
 		[][]float64{
 			m.feelsLikeHistory,
 			m.tempHistory,
-			m.DewPointHistory,
+			m.dewPointHistory,
 		},
 		asciigraph.Caption("Temperature °F"),
 		asciigraph.Height(height),
