@@ -32,9 +32,30 @@ type model struct {
 	tempHistory      []float64
 	windSpeedHistory []float64
 	pressureHistory  []float64
-	humidityHistory  []float64
-	DewPointHistory  []float64
-	feelsLikeHistory []float64
+// In tui/tui.go
+
+// 1) Rename in struct definition
+type tui struct {
+    humidityHistory  []float64
+    dewPointHistory  []float64
+    feelsLikeHistory []float64
+}
+
+// 2) Update in recordObservation()
+func (m *tui) recordObservation() {
+    m.humidityHistory  = appendAndTrim(m.humidityHistory, m.observation.Humidity(),       maxHistory)
+    m.dewPointHistory  = appendAndTrim(m.dewPointHistory, m.observation.DewPointFarenheit(), maxHistory)
+    // ...
+}
+
+// 3) Update in renderChart()
+func (m *tui) renderChart() {
+    historyPlots := []plotter.XYs{
+        toXYs(m.humidityHistory),
+        toXYs(m.dewPointHistory),
+        toXYs(m.feelsLikeHistory),
+    }
+    // ...
 }
 
 // InitialModel creates and returns a new model instance configured for the specified Tempest device connection.
