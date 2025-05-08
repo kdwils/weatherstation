@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,21 +16,28 @@ import (
 	"github.com/kdwils/weatherstation/pkg/tempest"
 )
 
+const (
+	maxHistory = 100
+)
+
 type model struct {
 	listener         tempest.Listener
 	observation      *api.ObservationTempest
 	spinner          spinner.Model
 	err              error
 	quitting         bool
-	lightningCounter int
 	updates          chan tea.Msg // Add channel for updates
 	width            int
 	height           int
 	tempHistory      []float64
 	windSpeedHistory []float64
 	pressureHistory  []float64
+	humidityHistory  []float64
+	dewPointHistory  []float64
+	feelsLikeHistory []float64
 }
 
+// InitialModel creates and returns a new model instance configured for the specified Tempest device connection.
 func InitialModel(conn connection.Connection, device int) *model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -75,25 +83,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case observationMsg:
 		m.observation = msg.observation
-		if m.lightningCounter > 0 {
-			m.lightningCounter--
-		}
-		m.tempHistory = append(m.tempHistory, m.observation.TemperatureInFarneheit())
-		if len(m.tempHistory) > 30 {
-			m.tempHistory = m.tempHistory[1:]
-		}
-		m.windSpeedHistory = append(m.windSpeedHistory, m.observation.WindSpeedAverageMPH())
-		if len(m.windSpeedHistory) > 30 {
-			m.windSpeedHistory = m.windSpeedHistory[1:]
-		}
-		m.pressureHistory = append(m.pressureHistory, m.observation.Data.StationPressure)
-		if len(m.pressureHistory) > 30 {
-			m.pressureHistory = m.pressureHistory[1:]
-		}
+		m.tempHistory = appendAndTrim(m.tempHistory, m.observation.TemperatureInFarneheit(), maxHistory)
+		m.feelsLikeHistory = appendAndTrim(m.feelsLikeHistory, m.observation.FeelsLikeFarenheit(), maxHistory)
+		m.windSpeedHistory = appendAndTrim(m.windSpeedHistory, m.observation.WindSpeedAverageMPH(), maxHistory)
+		m.pressureHistory = appendAndTrim(m.pressureHistory, m.observation.Data.StationPressure, maxHistory)
+		m.humidityHistory = appendAndTrim(m.humidityHistory, float64(m.observation.Data.RelativeHumidity), maxHistory)
+		m.dewPointHistory = appendAndTrim(m.dewPointHistory, m.observation.DewPointFarenheit(), maxHistory)
 		return m, m.waitForUpdate
 
 	case lightningStrikeMsg:
-		m.lightningCounter += 2
+		m.updates <- lightningStrikeMsg{strike: msg.strike}
 		return m, m.waitForUpdate
 
 	case errMsg:
@@ -102,6 +101,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+// appendAndTrim appends a value to a slice and trims it to the specified maximum length by removing the oldest element if necessary.
+func appendAndTrim[T any](slice []T, value T, max int) []T {
+	slice = append(slice, value)
+	if len(slice) > max {
+		slice = slice[1:]
+	}
+	return slice
 }
 
 func (m *model) View() string {
@@ -113,57 +121,41 @@ func (m *model) View() string {
 	}
 	mainContainerStyle := lipgloss.NewStyle()
 
-	quadrantWidth := (m.width - 8) / 2
-	quadrantHeight := (m.height - 8) / 2
+	quadrantWidth := int(float64(m.width)*0.9) / 2
+	quadrantHeight := int(float64(m.height)*0.9) / 2
 
 	dataQuadrantStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#fafafa")).
-		Padding(1).
-		Margin(1).
-		Width(quadrantWidth - 1).
-		Height(quadrantHeight - 1)
+		Width(quadrantWidth).
+		Height(quadrantHeight)
 
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#fafafa")).
-		Align(lipgloss.Center).
-		Width(quadrantWidth - 4).
-		PaddingBottom(2)
+		PaddingBottom(1)
 
 	labelStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("12")).
-		Bold(true).
-		Width(quadrantWidth - 8).
-		Align(lipgloss.Left)
+		Bold(true).Align(lipgloss.Left)
 
 	valueStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15")).
-		Width(quadrantWidth - 8).
-		Align(lipgloss.Left)
+		Foreground(lipgloss.Color("15"))
 
 	detailsStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("8")).
-		Width(quadrantWidth - 8).
-		Align(lipgloss.Left)
+		Foreground(lipgloss.Color("8"))
 
 	contentStyle := lipgloss.NewStyle().
-		Width(quadrantWidth - 4).
-		AlignHorizontal(lipgloss.Left).
 		PaddingLeft(2).
-		PaddingRight(2)
+		PaddingRight(2).
+		Align(lipgloss.Left)
 
 	sectionStyle := lipgloss.NewStyle().
 		MarginBottom(1).
-		MarginRight(2).
 		Width((quadrantWidth) / 3)
 
 	graphStyle := lipgloss.NewStyle().
-		Width(quadrantWidth - 8).
-		Height(quadrantHeight - 8).
-		AlignVertical(lipgloss.Bottom).
-		MarginBottom(0).
-		PaddingBottom(0)
+		AlignVertical(lipgloss.Bottom)
 
 	temperatureSection := sectionStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
@@ -184,7 +176,7 @@ func (m *model) View() string {
 	)
 
 	precipitationSection := sectionStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Center,
+		lipgloss.JoinVertical(lipgloss.Left,
 			labelStyle.Render("Preciptiation"),
 			valueStyle.Render(m.observation.PrecipitationType()),
 			detailsStyle.Render(fmt.Sprintf("Today: %.2fin", m.observation.RainfallInInches())),
@@ -194,7 +186,7 @@ func (m *model) View() string {
 	)
 
 	pressureSection := sectionStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Center,
+		lipgloss.JoinVertical(lipgloss.Left,
 			labelStyle.Render("Pressure"),
 			valueStyle.Render(fmt.Sprintf("%.1f mb", m.observation.Data.StationPressure)),
 			detailsStyle.Render(fmt.Sprintf("Trend: %s", m.observation.Summary.PressureTrend)),
@@ -202,7 +194,7 @@ func (m *model) View() string {
 	)
 
 	ultraVioletIndexSection := sectionStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Center,
+		lipgloss.JoinVertical(lipgloss.Left,
 			labelStyle.Render("UV Index"),
 			valueStyle.Render(fmt.Sprintf("%0.2f", m.observation.Data.UltraviolentIndex)),
 		),
@@ -238,6 +230,7 @@ func (m *model) View() string {
 	)
 
 	currentRows := []string{
+		titleStyle.Render(centerText("Current Conditions", quadrantWidth)),
 		lipgloss.JoinHorizontal(
 			lipgloss.Top,
 			temperatureSection,
@@ -260,32 +253,46 @@ func (m *model) View() string {
 
 	currentConditionsContent := dataQuadrantStyle.Render(
 		contentStyle.Render(
-			titleStyle.Render("Current Conditions"),
 			lipgloss.JoinVertical(lipgloss.Left,
 				currentRows...,
 			),
 		),
 	)
 
+	graphHeight := int(float64(quadrantHeight) * .8)
+	graphWidth := int(float64(quadrantWidth) * .8)
+
 	temperatureGraph := dataQuadrantStyle.Render(
-		titleStyle.Render("Temperature Trend") +
-			graphStyle.Render(
-				m.renderTemperatureGraph(quadrantWidth-4, quadrantHeight-4),
+		contentStyle.Render(
+			lipgloss.JoinVertical(
+				lipgloss.Top,
+				graphStyle.Render(
+					m.renderTemperatureGraph(graphWidth, graphHeight),
+				),
 			),
+		),
 	)
 
 	pressureGraph := dataQuadrantStyle.Render(
-		titleStyle.Render("Pressure Trend") +
-			graphStyle.Render(
-				m.renderPressureGraph(quadrantWidth-4, quadrantHeight-4),
+		contentStyle.Render(
+			lipgloss.JoinVertical(
+				lipgloss.Top,
+				graphStyle.Render(
+					m.renderPressureGraph(graphWidth, graphHeight),
+				),
 			),
+		),
 	)
 
 	windGraph := dataQuadrantStyle.Render(
-		titleStyle.Render("Wind Speed Trend") +
-			graphStyle.Render(
-				m.renderWindGraph(quadrantWidth-4, quadrantHeight-4),
+		contentStyle.Render(
+			lipgloss.JoinVertical(
+				lipgloss.Top,
+				graphStyle.Render(
+					m.renderWindGraph(graphWidth, graphHeight),
+				),
 			),
+		),
 	)
 
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top,
@@ -354,40 +361,57 @@ func (m *model) handleLightningStrike(ctx context.Context, b []byte) {
 }
 
 func (m *model) renderWindGraph(width, height int) string {
-
 	return asciigraph.Plot(
 		m.windSpeedHistory,
-		asciigraph.Height(height-20),
-		asciigraph.Width(width-10),
+		asciigraph.Caption("Wind Speed"),
+		asciigraph.Height(height),
+		asciigraph.Width(width),
 		asciigraph.Precision(1),
-		asciigraph.SeriesColors(asciigraph.Blue),
+		asciigraph.SeriesColors(asciigraph.Cyan),
 		asciigraph.SeriesLegends("mph"),
 	)
 }
 
 func (m *model) renderPressureGraph(width, height int) string {
-
 	return asciigraph.Plot(
 		m.pressureHistory,
-		asciigraph.Height(height-20),
-		asciigraph.Width(width-10),
+		asciigraph.Caption("Pressure"),
+		asciigraph.Height(height),
+		asciigraph.Width(width),
 		asciigraph.Precision(1),
 		asciigraph.SeriesLegends("mb"),
-		asciigraph.SeriesColors(
-			asciigraph.Indigo,
-		),
+		asciigraph.SeriesColors(asciigraph.Indigo),
 	)
 }
 
 func (m *model) renderTemperatureGraph(width, height int) string {
-	temp := asciigraph.Plot(
-		m.tempHistory,
-		asciigraph.Height(height-20),
-		asciigraph.Width(width-10),
+	temp := asciigraph.PlotMany(
+		[][]float64{
+			m.feelsLikeHistory,
+			m.tempHistory,
+			m.dewPointHistory,
+		},
+		asciigraph.Caption("Temperature °F"),
+		asciigraph.Height(height),
+		asciigraph.Width(width),
 		asciigraph.Precision(1),
-		asciigraph.SeriesColors(asciigraph.Red),
-		asciigraph.SeriesLegends("°F"),
+		asciigraph.SeriesColors(
+			asciigraph.Green,
+			asciigraph.Red,
+			asciigraph.Blue,
+		),
+		asciigraph.SeriesLegends("feels like", "temp", "dew point"),
 	)
 
 	return temp
+}
+
+// centerText returns the input text centered within the specified width by adding left padding.
+// If the text is longer than the width, it is returned unchanged.
+func centerText(text string, width int) string {
+	if len(text) >= width {
+		return text
+	}
+	padding := (width - len(text)) / 2
+	return strings.Repeat(" ", padding) + text
 }
