@@ -1,0 +1,7 @@
+name: Build
+on:
+  pull_request:
+    branches: ["main"]
+jobs:
+  dependabot:
+    uses: kdwils/homelab-workflow/.github/workflows/dependabot.yml@main
