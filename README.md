@@ -6,6 +6,8 @@ The binary ships with two interfaces:
 * A terminal UI
 * A simple web dashboard
 
+## How it works
+
 ```mermaid
 sequenceDiagram
     participant User
