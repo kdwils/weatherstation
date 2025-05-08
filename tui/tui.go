@@ -37,6 +37,7 @@ type model struct {
 	feelsLikeHistory []float64
 }
 
+// InitialModel creates and returns a new model instance configured for the specified Tempest device connection.
 func InitialModel(conn connection.Connection, device int) *model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -101,6 +102,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// appendAndTrim appends a value to a slice and trims it to the specified maximum length by removing the oldest element if necessary.
 func appendAndTrim[T any](slice []T, value T, max int) []T {
 	slice = append(slice, value)
 	if len(slice) > max {
@@ -403,6 +405,8 @@ func (m *model) renderTemperatureGraph(width, height int) string {
 	return temp
 }
 
+// centerText returns the input text centered within the specified width by adding left padding.
+// If the text is longer than the width, it is returned unchanged.
 func centerText(text string, width int) string {
 	if len(text) >= width {
 		return text
