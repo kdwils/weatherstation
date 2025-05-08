@@ -6,6 +6,22 @@ The binary ships with two interfaces:
 * A terminal UI
 * A simple web dashboard
 
+How it works:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant TerminalUI
+    participant WeatherDevice
+
+    User->>TerminalUI: Launches TUI
+    TerminalUI->>WeatherDevice: Subscribes to real-time data
+    WeatherDevice-->>TerminalUI: Sends observation data
+    TerminalUI->>TerminalUI: Append and trim history for metrics
+    TerminalUI->>TerminalUI: Render updated graphs (temp, dew point, humidity, etc.)
+    TerminalUI-->>User: Display updated dashboard
+```
+
 ## Installation
 
 To install the binary, run:
