@@ -122,12 +122,6 @@ import (
 )
 
 func main() {
-    conn, err := connection.NewConnection(ctx, "wss", "ws.weatherflow.com", "/swd/data", "your-token")
-    if err != nil {
-        log.Fatal(err)
-    }
-
-
     ctx := context.Background()
     deviceID := 123
     conn, err := connection.NewConnection(ctx, "wss", "ws.weatherflow.com", "/swd/data", "your-token")
